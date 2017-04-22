@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_POLICY_CERT_H_
-#define CHAPS_OBJECT_POLICY_CERT_H_
+#ifndef P11NET_OBJECT_POLICY_CERT_H_
+#define P11NET_OBJECT_POLICY_CERT_H_
 
 #include "object_policy_common.h"
 
-namespace chaps {
+namespace p11net {
 
 // Enforces policies for certificate objects (CKO_CERTIFICATE).
 class ObjectPolicyCert : public ObjectPolicyCommon {
@@ -18,6 +18,6 @@ class ObjectPolicyCert : public ObjectPolicyCommon {
   virtual void SetDefaultAttributes();
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_POLICY_CERT_H_
+#endif  // P11NET_OBJECT_POLICY_CERT_H_

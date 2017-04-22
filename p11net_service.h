@@ -2,31 +2,31 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_CHAPS_SERVICE_H_
-#define CHAPS_CHAPS_SERVICE_H_
+#ifndef P11NET_P11NET_SERVICE_H_
+#define P11NET_P11NET_SERVICE_H_
 
 #include <string>
 #include <vector>
 #include <memory>
 
-#include "chaps_interface.h"
+#include "p11net_interface.h"
 #include "slot_manager.h"
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
-// ChapsServiceImpl implements the Chaps IPC interface.  This class effectively
-// serves as the entry point to the Chaps daemon and is called directly by
-// ChapsAdaptor.
-class ChapsServiceImpl : public ChapsInterface {
+// P11NetServiceImpl implements the P11Net IPC interface.  This class effectively
+// serves as the entry point to the P11Net daemon and is called directly by
+// P11NetAdaptor.
+class P11NetServiceImpl : public P11NetInterface {
  public:
-  // ChapsServiceImpl does not take ownership of slot_manager and will not
+  // P11NetServiceImpl does not take ownership of slot_manager and will not
   // delete it.
-  explicit ChapsServiceImpl(std::shared_ptr<SlotManager> slot_manager);
-  virtual ~ChapsServiceImpl();
+  explicit P11NetServiceImpl(std::shared_ptr<SlotManager> slot_manager);
+  virtual ~P11NetServiceImpl();
   bool Init();
   void TearDown();
-  // ChapsInterface methods
+  // P11NetInterface methods
   virtual uint32_t GetSlotList(const brillo::SecureBlob& isolate_credential,
                                bool token_present,
                                std::vector<uint64_t>* slot_list);
@@ -363,8 +363,8 @@ class ChapsServiceImpl : public ChapsInterface {
   std::shared_ptr<SlotManager> slot_manager_;
   bool init_;
 
-  DISALLOW_COPY_AND_ASSIGN(ChapsServiceImpl);
+  DISALLOW_COPY_AND_ASSIGN(P11NetServiceImpl);
 };
 
-}  // namespace chaps
-#endif  // CHAPS_CHAPS_SERVICE_H_
+}  // namespace p11net
+#endif  // P11NET_P11NET_SERVICE_H_

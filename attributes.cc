@@ -10,13 +10,13 @@
 
 #include "base/logging.h"
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 #include "proto_bindings/attributes.pb.h"
 
 using std::string;
 using std::vector;
 
-namespace chaps {
+namespace p11net {
 
 Attributes::Attributes()
     : attributes_(NULL),
@@ -287,4 +287,4 @@ string Attributes::AttributeValueToString(const CK_ATTRIBUTE& attributes) {
                 attributes.ulValueLen);
 }
 
-}  // namespace chaps
+}  // namespace p11net

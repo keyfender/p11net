@@ -8,16 +8,16 @@
 
 #include <base/logging.h>
 
-#include "chaps_factory.h"
-#include "chaps_utility.h"
+#include "p11net_factory.h"
+#include "p11net_utility.h"
 #include "object_policy.h"
 #include "pkcs11/cryptoki.h"
 
 using std::string;
 
-namespace chaps {
+namespace p11net {
 
-ObjectImpl::ObjectImpl(ChapsFactory* factory) : factory_(factory),
+ObjectImpl::ObjectImpl(P11NetFactory* factory) : factory_(factory),
                                                 stage_(kCreate),
                                                 handle_(0),
                                                 store_id_(0) {}
@@ -207,4 +207,4 @@ bool ObjectImpl::SetPolicyByClass() {
   return true;
 }
 
-}  // namespace chaps
+}  // namespace p11net

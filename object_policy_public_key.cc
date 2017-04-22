@@ -6,7 +6,7 @@
 
 #include <base/macros.h>
 
-namespace chaps {
+namespace p11net {
 
 // Read policy list as follows:
 //   {attribute, sensitive, read-only {create, copy, modify}, required}
@@ -46,4 +46,4 @@ void ObjectPolicyPublicKey::SetDefaultAttributes() {
     object_->SetAttributeString(CKA_SUBJECT, "");
 }
 
-}  // namespace chaps
+}  // namespace p11net

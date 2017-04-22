@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chaps_factory_impl.h"
+#include "p11net_factory_impl.h"
 
 #include <string>
 
@@ -24,9 +24,9 @@
 using base::FilePath;
 using std::string;
 
-namespace chaps {
+namespace p11net {
 
-Session* ChapsFactoryImpl::CreateSession(int slot_id,
+Session* P11NetFactoryImpl::CreateSession(int slot_id,
                                          std::shared_ptr<ObjectPool> token_object_pool,
                                          std::shared_ptr<NetUtility> net_utility,
                                          std::shared_ptr<HandleGenerator> handle_generator,
@@ -39,7 +39,7 @@ Session* ChapsFactoryImpl::CreateSession(int slot_id,
                          is_read_only);
 }
 
-ObjectPool* ChapsFactoryImpl::CreateObjectPool(
+ObjectPool* P11NetFactoryImpl::CreateObjectPool(
     std::shared_ptr<HandleGenerator> handle_generator,
     std::unique_ptr<ObjectStore> object_store) {
   std::unique_ptr<ObjectPoolImpl> pool(new ObjectPoolImpl(shared_from_this(),
@@ -51,7 +51,7 @@ ObjectPool* ChapsFactoryImpl::CreateObjectPool(
   return pool.release();
 }
 
-ObjectStore* ChapsFactoryImpl::CreateObjectStore(const FilePath& file_name) {
+ObjectStore* P11NetFactoryImpl::CreateObjectStore(const FilePath& file_name) {
   std::unique_ptr<ObjectStoreImpl> store(new ObjectStoreImpl());
   if (!store->Init(file_name)) {
     // The approach here is to limp along without a persistent object store so
@@ -64,11 +64,11 @@ ObjectStore* ChapsFactoryImpl::CreateObjectStore(const FilePath& file_name) {
   return store.release();
 }
 
-Object* ChapsFactoryImpl::CreateObject() {
+Object* P11NetFactoryImpl::CreateObject() {
   return new ObjectImpl(this);
 }
 
-ObjectPolicy* ChapsFactoryImpl::CreateObjectPolicy(CK_OBJECT_CLASS type) {
+ObjectPolicy* P11NetFactoryImpl::CreateObjectPolicy(CK_OBJECT_CLASS type) {
   switch (type) {
     case CKO_DATA:
       return new ObjectPolicyData();
@@ -84,11 +84,11 @@ ObjectPolicy* ChapsFactoryImpl::CreateObjectPolicy(CK_OBJECT_CLASS type) {
   return new ObjectPolicyCommon();
 }
 
-NetUtility* ChapsFactoryImpl::CreateNetUtility(
+NetUtility* P11NetFactoryImpl::CreateNetUtility(
   std::shared_ptr<ObjectPool> token_object_pool
 ) {
   return new NetUtilityImpl(token_object_pool,
                             shared_from_this());
 }
 
-}  // namespace chaps
+}  // namespace p11net

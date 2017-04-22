@@ -9,12 +9,12 @@
 #include <base/logging.h>
 #include <base/macros.h>
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 #include "object.h"
 
 using std::map;
 
-namespace chaps {
+namespace p11net {
 
 // Read policy list as follows:
 //   {attribute, sensitive, read-only {create, copy, modify}, required}
@@ -120,4 +120,4 @@ bool ObjectPolicyCommon::IsPrivateClass() {
   return true;
 }
 
-}  // namespace chaps
+}  // namespace p11net

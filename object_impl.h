@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_IMPL_H_
-#define CHAPS_OBJECT_IMPL_H_
+#ifndef P11NET_OBJECT_IMPL_H_
+#define P11NET_OBJECT_IMPL_H_
 
 #include "object.h"
 
@@ -15,14 +15,14 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
-class ChapsFactory;
+class P11NetFactory;
 class ObjectPolicy;
 
 class ObjectImpl : public Object {
  public:
-  explicit ObjectImpl(ChapsFactory* factory);
+  explicit ObjectImpl(P11NetFactory* factory);
   virtual ~ObjectImpl();
   virtual ObjectStage GetStage() const;
   virtual int GetSize() const;
@@ -54,7 +54,7 @@ class ObjectImpl : public Object {
   virtual void set_store_id(int store_id) {store_id_ = store_id;}
 
  private:
-  ChapsFactory* factory_;
+  P11NetFactory* factory_;
   ObjectStage stage_;
   AttributeMap attributes_;
   // Tracks attributes which have been set by the user.
@@ -68,6 +68,6 @@ class ObjectImpl : public Object {
   DISALLOW_COPY_AND_ASSIGN(ObjectImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_IMPL_H_
+#endif  // P11NET_OBJECT_IMPL_H_

@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_TOKEN_MANAGER_INTERFACE_H_
-#define CHAPS_TOKEN_MANAGER_INTERFACE_H_
+#ifndef P11NET_TOKEN_MANAGER_INTERFACE_H_
+#define P11NET_TOKEN_MANAGER_INTERFACE_H_
 
 #include <string>
 
 #include <base/files/file_path.h>
 #include <brillo/secure_blob.h>
 
-namespace chaps {
+namespace p11net {
 
-// TokenManagerInterface is an interface for Chaps-specific token management
+// TokenManagerInterface is an interface for P11Net-specific token management
 // operations which are not part of the PKCS #11 interface.
 //
 //   Some operations are parameterized with a path to the associated persistent
@@ -86,6 +86,6 @@ class TokenManagerInterface {
                             base::FilePath* path) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_TOKEN_MANAGER_INTERFACE_H_
+#endif  // P11NET_TOKEN_MANAGER_INTERFACE_H_

@@ -2,20 +2,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_CHAPS_FACTORY_IMPL_H_
-#define CHAPS_CHAPS_FACTORY_IMPL_H_
+#ifndef P11NET_P11NET_FACTORY_IMPL_H_
+#define P11NET_P11NET_FACTORY_IMPL_H_
 
-#include "chaps_factory.h"
+#include "p11net_factory.h"
 
 #include <base/macros.h>
 
-namespace chaps {
+namespace p11net {
 
-class ChapsFactoryImpl : public ChapsFactory,
-                         public std::enable_shared_from_this<ChapsFactoryImpl> {
+class P11NetFactoryImpl : public P11NetFactory,
+                         public std::enable_shared_from_this<P11NetFactoryImpl> {
  public:
-  ChapsFactoryImpl() {}
-  virtual ~ChapsFactoryImpl() {}
+  P11NetFactoryImpl() {}
+  virtual ~P11NetFactoryImpl() {}
   virtual Session* CreateSession(int slot_id,
                                  std::shared_ptr<ObjectPool> token_object_pool,
                                  std::shared_ptr<NetUtility> net_utility,
@@ -29,9 +29,9 @@ class ChapsFactoryImpl : public ChapsFactory,
   virtual NetUtility* CreateNetUtility(std::shared_ptr<ObjectPool> token_object_pool);
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ChapsFactoryImpl);
+  DISALLOW_COPY_AND_ASSIGN(P11NetFactoryImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_CHAPS_FACTORY_IMPL_H_
+#endif  // P11NET_P11NET_FACTORY_IMPL_H_

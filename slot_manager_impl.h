@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_SLOT_MANAGER_IMPL_H_
-#define CHAPS_SLOT_MANAGER_IMPL_H_
+#ifndef P11NET_SLOT_MANAGER_IMPL_H_
+#define P11NET_SLOT_MANAGER_IMPL_H_
 
 #include <map>
 #include <memory>
@@ -13,16 +13,16 @@
 
 #include <base/macros.h>
 #include <base/synchronization/lock.h>
-#include <base/threading/platform_thread.h>
+//#include <base/threading/platform_thread.h>
 
 #include "handle_generator.h"
 #include "slot_manager.h"
 #include "token_manager_interface.h"
 
-#include "chaps_factory.h"
+#include "p11net_factory.h"
 #include "object_pool.h"
 
-namespace chaps {
+namespace p11net {
 
 class SessionFactory;
 class NetUtility;
@@ -39,7 +39,7 @@ class SlotManagerImpl : public SlotManager,
                         public HandleGenerator,
                         public std::enable_shared_from_this<SlotManagerImpl> {
  public:
-  SlotManagerImpl(std::shared_ptr<ChapsFactory> factory,
+  SlotManagerImpl(std::shared_ptr<P11NetFactory> factory,
                   bool auto_load_system_token);
   virtual ~SlotManagerImpl();
 
@@ -171,7 +171,7 @@ class SlotManagerImpl : public SlotManager,
   bool InitializeSoftwareToken(const brillo::SecureBlob& auth_data,
                                ObjectPool* object_pool);
 
-  std::shared_ptr<ChapsFactory> factory_;
+  std::shared_ptr<P11NetFactory> factory_;
   int last_handle_;
   MechanismMap mechanism_info_;
   // Key: A path to a token's storage directory.
@@ -189,6 +189,6 @@ class SlotManagerImpl : public SlotManager,
   DISALLOW_COPY_AND_ASSIGN(SlotManagerImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_SLOT_MANAGER_IMPL_H_
+#endif  // P11NET_SLOT_MANAGER_IMPL_H_

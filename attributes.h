@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_ATTRIBUTES_H_
-#define CHAPS_ATTRIBUTES_H_
+#ifndef P11NET_ATTRIBUTES_H_
+#define P11NET_ATTRIBUTES_H_
 
 #include <string>
 #include <vector>
@@ -12,7 +12,7 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 // This class encapsulates an array of CK_ATTRIBUTEs and provides serialization.
 class EXPORT_SPEC Attributes {
@@ -76,6 +76,6 @@ class EXPORT_SPEC Attributes {
   DISALLOW_COPY_AND_ASSIGN(Attributes);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_ATTRIBUTES_H_
+#endif  // P11NET_ATTRIBUTES_H_

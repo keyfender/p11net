@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// This is the Chaps client. Essentially it forwards all PKCS #11 calls to the
-// Chaps Daemon (chapsd) via D-Bus.
+// This is the P11Net client. Essentially it forwards all PKCS #11 calls to the
+// P11Net Daemon (p11netd) via D-Bus.
 
-#include "chaps.h"
+#include "p11net.h"
 
 #include <string>
 #include <vector>
@@ -15,22 +15,22 @@
 //#include <base/synchronization/waitable_event.h>
 
 #include "attributes.h"
-#include "chaps_service.h"
-#include "chaps_utility.h"
+#include "p11net_service.h"
+#include "p11net_utility.h"
 #include "isolate.h"
 #include "pkcs11/cryptoki.h"
-#include "chaps_factory_impl.h"
+#include "p11net_factory_impl.h"
 #include "slot_manager_impl.h"
 
 //using base::WaitableEvent;
 using std::string;
 using std::vector;
 
-static const CK_BYTE kChapsLibraryVersionMajor = 0;
-static const CK_BYTE kChapsLibraryVersionMinor = 1;
+static const CK_BYTE kP11NetLibraryVersionMajor = 0;
+static const CK_BYTE kP11NetLibraryVersionMinor = 1;
 
 // The global proxy instance. This is valid only when g_is_initialized is true.
-static chaps::ChapsInterface* g_proxy = NULL;
+static p11net::P11NetInterface* g_proxy = NULL;
 
 // Set to true when using a mock proxy.
 static bool g_is_using_mock = false;
@@ -58,12 +58,12 @@ static void TearDown() {
 // 2) Caller passes a buffer that's too small.
 // 3) Caller passes a buffer that is large enough.
 // Parameters:
-//    result - The result of the operation as returned by chapsd.  This will be
+//    result - The result of the operation as returned by p11netd.  This will be
 //             clobbered if an error occurs, otherwise it is returned as is.
-//    output - The output of the operation as provided by chapsd.  This should
+//    output - The output of the operation as provided by p11netd.  This should
 //             always fit in the caller-supplied output buffer.
-//    output_length - The output length as provided by chapsd.  This is used
-//                    when no data, only the length has been provided by chapsd.
+//    output_length - The output length as provided by p11netd.  This is used
+//                    when no data, only the length has been provided by p11netd.
 //    out_buffer - The caller-supplied output buffer; this may be NULL.
 //    out_buffer_length - The caller-supplied output buffer length, in bytes.
 //                        This will be updated with the actual output length.
@@ -85,10 +85,10 @@ static CK_RV HandlePKCS11Output(CK_RV result,
   return result;
 }
 
-namespace chaps {
+namespace p11net {
 
 // Helpers to support a mock proxy and isolate credential (useful in testing).
-EXPORT_SPEC void EnableMockProxy(ChapsInterface* proxy,
+EXPORT_SPEC void EnableMockProxy(P11NetInterface* proxy,
                                  brillo::SecureBlob* isolate_credential,
                                  bool is_initialized) {
   g_proxy = proxy;
@@ -105,7 +105,7 @@ EXPORT_SPEC void DisableMockProxy() {
   g_is_initialized = false;
 }
 
-}  // namespace chaps
+}  // namespace p11net
 
 // The following functions are PKCS #11 entry points. They are intentionally
 // in the root namespace and are declared 'extern "C"' in pkcs11.h.
@@ -135,21 +135,21 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   }
   // If we're not using a mock proxy instance we need to create one.
   if (!g_is_using_mock) {
-    std::shared_ptr<chaps::ChapsFactoryImpl>
-      factory(new chaps::ChapsFactoryImpl());
-    std::shared_ptr<chaps::SlotManagerImpl>
-      slot_mgr(new chaps::SlotManagerImpl(factory, true));
+    std::shared_ptr<p11net::P11NetFactoryImpl>
+      factory(new p11net::P11NetFactoryImpl());
+    std::shared_ptr<p11net::SlotManagerImpl>
+      slot_mgr(new p11net::SlotManagerImpl(factory, true));
     if (!slot_mgr->Init())
         LOG_CK_RV_AND_RETURN(CKR_GENERAL_ERROR);
-    std::unique_ptr<chaps::ChapsServiceImpl>
-      proxy(new chaps::ChapsServiceImpl(slot_mgr));
+    std::unique_ptr<p11net::P11NetServiceImpl>
+      proxy(new p11net::P11NetServiceImpl(slot_mgr));
     CHECK(proxy.get());
     if (!proxy->Init())
       LOG_CK_RV_AND_RETURN(CKR_GENERAL_ERROR);
     g_proxy = proxy.release();
 
     g_user_isolate = new brillo::SecureBlob(16);
-//    chaps::IsolateCredentialManager isolate_manager;
+//    p11net::IsolateCredentialManager isolate_manager;
 //    if (!isolate_manager.GetCurrentUserIsolateCredential(g_user_isolate))
 //      *g_user_isolate = isolate_manager.GetDefaultIsolateCredential();
   }
@@ -179,15 +179,15 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
   LOG_CK_RV_AND_RETURN_IF(!pInfo, CKR_ARGUMENTS_BAD);
   pInfo->cryptokiVersion.major = CRYPTOKI_VERSION_MAJOR;
   pInfo->cryptokiVersion.minor = CRYPTOKI_VERSION_MINOR;
-  chaps::CopyStringToCharBuffer("Chromium OS",
+  p11net::CopyStringToCharBuffer("Chromium OS",
                                 pInfo->manufacturerID,
                                 arraysize(pInfo->manufacturerID));
   pInfo->flags = 0;
-  chaps::CopyStringToCharBuffer("Chaps Client Library",
+  p11net::CopyStringToCharBuffer("P11Net Client Library",
                                 pInfo->libraryDescription,
                                 arraysize(pInfo->libraryDescription));
-  pInfo->libraryVersion.major = kChapsLibraryVersionMajor;
-  pInfo->libraryVersion.minor = kChapsLibraryVersionMinor;
+  pInfo->libraryVersion.major = kP11NetLibraryVersionMajor;
+  pInfo->libraryVersion.minor = kP11NetLibraryVersionMinor;
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
 }
@@ -243,16 +243,16 @@ CK_RV C_GetSlotInfo(CK_SLOT_ID slotID, CK_SLOT_INFO_PTR pInfo) {
       slotID,
       &slot_description,
       &manufacturer_id,
-      chaps::PreservedCK_ULONG(&pInfo->flags),
+      p11net::PreservedCK_ULONG(&pInfo->flags),
       static_cast<uint8_t*>(&pInfo->hardwareVersion.major),
       static_cast<uint8_t*>(&pInfo->hardwareVersion.minor),
       static_cast<uint8_t*>(&pInfo->firmwareVersion.major),
       static_cast<uint8_t*>(&pInfo->firmwareVersion.minor));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
-  chaps::CopyVectorToCharBuffer(slot_description,
+  p11net::CopyVectorToCharBuffer(slot_description,
                                 pInfo->slotDescription,
                                 arraysize(pInfo->slotDescription));
-  chaps::CopyVectorToCharBuffer(manufacturer_id,
+  p11net::CopyVectorToCharBuffer(manufacturer_id,
                                 pInfo->manufacturerID,
                                 arraysize(pInfo->manufacturerID));
   VLOG(1) << __func__ << " - CKR_OK";
@@ -274,32 +274,32 @@ CK_RV C_GetTokenInfo(CK_SLOT_ID slotID, CK_TOKEN_INFO_PTR pInfo) {
       &manufacturer_id,
       &model,
       &serial_number,
-      chaps::PreservedCK_ULONG(&pInfo->flags),
-      chaps::PreservedCK_ULONG(&pInfo->ulMaxSessionCount),
-      chaps::PreservedCK_ULONG(&pInfo->ulSessionCount),
-      chaps::PreservedCK_ULONG(&pInfo->ulMaxRwSessionCount),
-      chaps::PreservedCK_ULONG(&pInfo->ulRwSessionCount),
-      chaps::PreservedCK_ULONG(&pInfo->ulMaxPinLen),
-      chaps::PreservedCK_ULONG(&pInfo->ulMinPinLen),
-      chaps::PreservedCK_ULONG(&pInfo->ulTotalPublicMemory),
-      chaps::PreservedCK_ULONG(&pInfo->ulFreePublicMemory),
-      chaps::PreservedCK_ULONG(&pInfo->ulTotalPrivateMemory),
-      chaps::PreservedCK_ULONG(&pInfo->ulFreePrivateMemory),
+      p11net::PreservedCK_ULONG(&pInfo->flags),
+      p11net::PreservedCK_ULONG(&pInfo->ulMaxSessionCount),
+      p11net::PreservedCK_ULONG(&pInfo->ulSessionCount),
+      p11net::PreservedCK_ULONG(&pInfo->ulMaxRwSessionCount),
+      p11net::PreservedCK_ULONG(&pInfo->ulRwSessionCount),
+      p11net::PreservedCK_ULONG(&pInfo->ulMaxPinLen),
+      p11net::PreservedCK_ULONG(&pInfo->ulMinPinLen),
+      p11net::PreservedCK_ULONG(&pInfo->ulTotalPublicMemory),
+      p11net::PreservedCK_ULONG(&pInfo->ulFreePublicMemory),
+      p11net::PreservedCK_ULONG(&pInfo->ulTotalPrivateMemory),
+      p11net::PreservedCK_ULONG(&pInfo->ulFreePrivateMemory),
       static_cast<uint8_t*>(&pInfo->hardwareVersion.major),
       static_cast<uint8_t*>(&pInfo->hardwareVersion.minor),
       static_cast<uint8_t*>(&pInfo->firmwareVersion.major),
       static_cast<uint8_t*>(&pInfo->firmwareVersion.minor));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
-  chaps::CopyVectorToCharBuffer(label,
+  p11net::CopyVectorToCharBuffer(label,
                                 pInfo->label,
                                 arraysize(pInfo->label));
-  chaps::CopyVectorToCharBuffer(manufacturer_id,
+  p11net::CopyVectorToCharBuffer(manufacturer_id,
                                 pInfo->manufacturerID,
                                 arraysize(pInfo->manufacturerID));
-  chaps::CopyVectorToCharBuffer(model,
+  p11net::CopyVectorToCharBuffer(model,
                                 pInfo->model,
                                 arraysize(pInfo->model));
-  chaps::CopyVectorToCharBuffer(serial_number,
+  p11net::CopyVectorToCharBuffer(serial_number,
                                 pInfo->serialNumber,
                                 arraysize(pInfo->serialNumber));
   VLOG(1) << __func__ << " - CKR_OK";
@@ -363,9 +363,9 @@ CK_RV C_GetMechanismInfo(CK_SLOT_ID slotID,
       *g_user_isolate,
       slotID,
       type,
-      chaps::PreservedCK_ULONG(&pInfo->ulMinKeySize),
-      chaps::PreservedCK_ULONG(&pInfo->ulMaxKeySize),
-      chaps::PreservedCK_ULONG(&pInfo->flags));
+      p11net::PreservedCK_ULONG(&pInfo->ulMinKeySize),
+      p11net::PreservedCK_ULONG(&pInfo->ulMaxKeySize),
+      p11net::PreservedCK_ULONG(&pInfo->flags));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -378,9 +378,9 @@ CK_RV C_InitToken(CK_SLOT_ID slotID,
                   CK_UTF8CHAR_PTR pLabel) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pLabel, CKR_ARGUMENTS_BAD);
-  string pin = chaps::ConvertCharBufferToString(pPin, ulPinLen);
+  string pin = p11net::ConvertCharBufferToString(pPin, ulPinLen);
   vector<uint8_t> label =
-      chaps::ConvertByteBufferToVector(pLabel, chaps::kTokenLabelSize);
+      p11net::ConvertByteBufferToVector(pLabel, p11net::kTokenLabelSize);
   string* pin_ptr = (!pPin) ? NULL : &pin;
   CK_RV result = g_proxy->InitToken(*g_user_isolate, slotID, pin_ptr, label);
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
@@ -393,7 +393,7 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
                 CK_UTF8CHAR_PTR pPin,
                 CK_ULONG ulPinLen) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
-  string pin = chaps::ConvertCharBufferToString(pPin, ulPinLen);
+  string pin = p11net::ConvertCharBufferToString(pPin, ulPinLen);
   string* pin_ptr = (!pPin) ? NULL : &pin;
   CK_RV result = g_proxy->InitPIN(*g_user_isolate, hSession, pin_ptr);
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
@@ -408,9 +408,9 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
                CK_UTF8CHAR_PTR pNewPin,
                CK_ULONG ulNewLen) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
-  string old_pin = chaps::ConvertCharBufferToString(pOldPin, ulOldLen);
+  string old_pin = p11net::ConvertCharBufferToString(pOldPin, ulOldLen);
   string* old_pin_ptr = (!pOldPin) ? NULL : &old_pin;
-  string new_pin = chaps::ConvertCharBufferToString(pNewPin, ulNewLen);
+  string new_pin = p11net::ConvertCharBufferToString(pNewPin, ulNewLen);
   string* new_pin_ptr = (!pNewPin) ? NULL : &new_pin;
   CK_RV result = g_proxy->SetPIN(*g_user_isolate, hSession, old_pin_ptr,
                                  new_pin_ptr);
@@ -431,7 +431,7 @@ CK_RV C_OpenSession(CK_SLOT_ID slotID,
   // notification callbacks and the PKCS #11 specification does not require us
   // to.  See PKCS #11 v2.20 section 11.17 for details.
   CK_RV result = g_proxy->OpenSession(*g_user_isolate, slotID, flags,
-                                      chaps::PreservedCK_ULONG(phSession));
+                                      p11net::PreservedCK_ULONG(phSession));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -463,10 +463,10 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession, CK_SESSION_INFO_PTR pInfo) {
   CK_RV result = g_proxy->GetSessionInfo(
       *g_user_isolate,
       hSession,
-      chaps::PreservedCK_ULONG(&pInfo->slotID),
-      chaps::PreservedCK_ULONG(&pInfo->state),
-      chaps::PreservedCK_ULONG(&pInfo->flags),
-      chaps::PreservedCK_ULONG(&pInfo->ulDeviceError));
+      p11net::PreservedCK_ULONG(&pInfo->slotID),
+      p11net::PreservedCK_ULONG(&pInfo->state),
+      p11net::PreservedCK_ULONG(&pInfo->flags),
+      p11net::PreservedCK_ULONG(&pInfo->ulDeviceError));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -505,7 +505,7 @@ CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!pOperationState, CKR_ARGUMENTS_BAD);
 
   vector<uint8_t> operation_state =
-      chaps::ConvertByteBufferToVector(pOperationState,
+      p11net::ConvertByteBufferToVector(pOperationState,
                                               ulOperationStateLen);
   CK_RV result = g_proxy->SetOperationState(*g_user_isolate,
                                             hSession,
@@ -523,7 +523,7 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,
               CK_UTF8CHAR_PTR pPin,
               CK_ULONG ulPinLen) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
-  string pin = chaps::ConvertCharBufferToString(pPin, ulPinLen);
+  string pin = p11net::ConvertCharBufferToString(pPin, ulPinLen);
   string* pin_ptr = (!pPin) ? NULL : &pin;
   CK_RV result = g_proxy->Login(*g_user_isolate, hSession, userType, pin_ptr);
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
@@ -548,7 +548,7 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   if (pTemplate == NULL_PTR || phObject == NULL_PTR)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized_attributes;
   if (!attributes.Serialize(&serialized_attributes))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -556,7 +556,7 @@ CK_RV C_CreateObject(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       serialized_attributes,
-      chaps::PreservedCK_ULONG(phObject));
+      p11net::PreservedCK_ULONG(phObject));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -571,7 +571,7 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   if (pTemplate == NULL_PTR || phNewObject == NULL_PTR)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized_attributes;
   if (!attributes.Serialize(&serialized_attributes))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -580,7 +580,7 @@ CK_RV C_CopyObject(CK_SESSION_HANDLE hSession,
       hSession,
       hObject,
       serialized_attributes,
-      chaps::PreservedCK_ULONG(phNewObject));
+      p11net::PreservedCK_ULONG(phNewObject));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -604,7 +604,7 @@ CK_RV C_GetObjectSize(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->GetObjectSize(*g_user_isolate,
                                         hSession,
                                         hObject,
-                                        chaps::PreservedCK_ULONG(pulSize));
+                                        p11net::PreservedCK_ULONG(pulSize));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -617,7 +617,7 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
                           CK_ULONG ulCount) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pTemplate, CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized_attributes_in;
   if (!attributes.Serialize(&serialized_attributes_in))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -634,9 +634,9 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
       result != CKR_ATTRIBUTE_SENSITIVE &&
       result != CKR_BUFFER_TOO_SMALL)
     LOG_CK_RV_AND_RETURN(result);
-  // Chapsd ensures the value is serialized correctly; we can assert.
+  // P11Netd ensures the value is serialized correctly; we can assert.
   CHECK(attributes.ParseAndFill(serialized_attributes_out));
-  VLOG(1) << __func__ << " - " << chaps::CK_RVToString(result);
+  VLOG(1) << __func__ << " - " << p11net::CK_RVToString(result);
   return result;
 }
 
@@ -647,7 +647,7 @@ CK_RV C_SetAttributeValue(CK_SESSION_HANDLE hSession,
                           CK_ULONG ulCount) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pTemplate, CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized_attributes;
   if (!attributes.Serialize(&serialized_attributes))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -666,7 +666,7 @@ CK_RV C_FindObjectsInit(CK_SESSION_HANDLE hSession,
                         CK_ULONG ulCount) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pTemplate && ulCount > 0, CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized_attributes;
   if (!attributes.Serialize(&serialized_attributes))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -717,7 +717,7 @@ CK_RV C_EncryptInit(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       hKey);
@@ -743,7 +743,7 @@ CK_RV C_Encrypt(CK_SESSION_HANDLE hSession,
       pEncryptedData ? static_cast<uint64_t>(*pulEncryptedDataLen) : 0;
   CK_RV result = g_proxy->Encrypt(*g_user_isolate,
                                   hSession,
-                                  chaps::ConvertByteBufferToVector(pData,
+                                  p11net::ConvertByteBufferToVector(pData,
                                                                    ulDataLen),
                                   max_out_length,
                                   &data_out_length,
@@ -776,7 +776,7 @@ CK_RV C_EncryptUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->EncryptUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pPart, ulPartLen),
+      p11net::ConvertByteBufferToVector(pPart, ulPartLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -828,7 +828,7 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       hKey);
@@ -853,7 +853,7 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,
   uint64_t max_out_length = pData ? static_cast<uint64_t>(*pulDataLen) : 0;
   CK_RV result = g_proxy->Decrypt(*g_user_isolate,
                                   hSession,
-                                  chaps::ConvertByteBufferToVector(
+                                  p11net::ConvertByteBufferToVector(
                                       pEncryptedData,
                                       ulEncryptedDataLen),
                                   max_out_length,
@@ -885,7 +885,7 @@ CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession,
   uint64_t max_out_length = pPart ? static_cast<uint64_t>(*pulPartLen) : 0;
   CK_RV result = g_proxy->DecryptUpdate(*g_user_isolate,
                                         hSession,
-                                        chaps::ConvertByteBufferToVector(
+                                        p11net::ConvertByteBufferToVector(
                                             pEncryptedPart,
                                             ulEncryptedPartLen),
                                         max_out_length,
@@ -934,7 +934,7 @@ CK_RV C_DigestInit(CK_SESSION_HANDLE hSession,
                    CK_MECHANISM_PTR pMechanism) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pMechanism, CKR_ARGUMENTS_BAD);
-  vector<uint8_t> parameter = chaps::ConvertByteBufferToVector(
+  vector<uint8_t> parameter = p11net::ConvertByteBufferToVector(
       reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
       pMechanism->ulParameterLen);
   CK_RV result = g_proxy->DigestInit(*g_user_isolate,
@@ -962,7 +962,7 @@ CK_RV C_Digest(CK_SESSION_HANDLE hSession,
   uint64_t max_out_length = pDigest ? static_cast<uint64_t>(*pulDigestLen) : 0;
   CK_RV result = g_proxy->Digest(*g_user_isolate,
                                  hSession,
-                                 chaps::ConvertByteBufferToVector(pData,
+                                 p11net::ConvertByteBufferToVector(pData,
                                                                   ulDataLen),
                                  max_out_length,
                                  &data_out_length,
@@ -989,7 +989,7 @@ CK_RV C_DigestUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->DigestUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pPart, ulPartLen));
+      p11net::ConvertByteBufferToVector(pPart, ulPartLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1037,7 +1037,7 @@ CK_RV C_SignInit(CK_SESSION_HANDLE hSession,
                  CK_OBJECT_HANDLE hKey) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pMechanism, CKR_ARGUMENTS_BAD);
-  vector<uint8_t> parameter = chaps::ConvertByteBufferToVector(
+  vector<uint8_t> parameter = p11net::ConvertByteBufferToVector(
       reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
       pMechanism->ulParameterLen);
   CK_RV result = g_proxy->SignInit(*g_user_isolate,
@@ -1067,7 +1067,7 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession,
       pSignature ? static_cast<uint64_t>(*pulSignatureLen) : 0;
   CK_RV result = g_proxy->Sign(*g_user_isolate,
                                hSession,
-                               chaps::ConvertByteBufferToVector(pData,
+                               p11net::ConvertByteBufferToVector(pData,
                                                                 ulDataLen),
                                max_out_length,
                                &data_out_length,
@@ -1093,7 +1093,7 @@ CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession,
   }
   CK_RV result = g_proxy->SignUpdate(*g_user_isolate,
                                      hSession,
-                                     chaps::ConvertByteBufferToVector(pPart,
+                                     p11net::ConvertByteBufferToVector(pPart,
                                                                ulPartLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
@@ -1134,7 +1134,7 @@ CK_RV C_SignRecoverInit(CK_SESSION_HANDLE hSession,
                         CK_OBJECT_HANDLE hKey) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pMechanism, CKR_ARGUMENTS_BAD);
-  vector<uint8_t> parameter = chaps::ConvertByteBufferToVector(
+  vector<uint8_t> parameter = p11net::ConvertByteBufferToVector(
       reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
       pMechanism->ulParameterLen);
   CK_RV result = g_proxy->SignRecoverInit(*g_user_isolate,
@@ -1162,7 +1162,7 @@ CK_RV C_SignRecover(CK_SESSION_HANDLE hSession,
       pSignature ? static_cast<uint64_t>(*pulSignatureLen) : 0;
   CK_RV result = g_proxy->SignRecover(*g_user_isolate,
                                       hSession,
-                                      chaps::ConvertByteBufferToVector(pData,
+                                      p11net::ConvertByteBufferToVector(pData,
                                                                 ulDataLen),
                                       max_out_length,
                                       &data_out_length,
@@ -1183,7 +1183,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession,
                    CK_OBJECT_HANDLE hKey) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pMechanism, CKR_ARGUMENTS_BAD);
-  vector<uint8_t> parameter = chaps::ConvertByteBufferToVector(
+  vector<uint8_t> parameter = p11net::ConvertByteBufferToVector(
       reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
       pMechanism->ulParameterLen);
   CK_RV result = g_proxy->VerifyInit(*g_user_isolate,
@@ -1210,8 +1210,8 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->Verify(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pData, ulDataLen),
-      chaps::ConvertByteBufferToVector(pSignature, ulSignatureLen));
+      p11net::ConvertByteBufferToVector(pData, ulDataLen),
+      p11net::ConvertByteBufferToVector(pSignature, ulSignatureLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1229,7 +1229,7 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->VerifyUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pPart, ulPartLen));
+      p11net::ConvertByteBufferToVector(pPart, ulPartLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1247,7 +1247,7 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->VerifyFinal(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pSignature, ulSignatureLen));
+      p11net::ConvertByteBufferToVector(pSignature, ulSignatureLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1259,7 +1259,7 @@ CK_RV C_VerifyRecoverInit(CK_SESSION_HANDLE hSession,
                           CK_OBJECT_HANDLE hKey) {
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   LOG_CK_RV_AND_RETURN_IF(!pMechanism, CKR_ARGUMENTS_BAD);
-  vector<uint8_t> parameter = chaps::ConvertByteBufferToVector(
+  vector<uint8_t> parameter = p11net::ConvertByteBufferToVector(
       reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
       pMechanism->ulParameterLen);
   CK_RV result = g_proxy->VerifyRecoverInit(
@@ -1288,7 +1288,7 @@ CK_RV C_VerifyRecover(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->VerifyRecover(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pSignature, ulSignatureLen),
+      p11net::ConvertByteBufferToVector(pSignature, ulSignatureLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -1317,7 +1317,7 @@ CK_RV C_DigestEncryptUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->DigestEncryptUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pPart, ulPartLen),
+      p11net::ConvertByteBufferToVector(pPart, ulPartLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -1345,7 +1345,7 @@ CK_RV C_DecryptDigestUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->DecryptDigestUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pEncryptedPart, ulEncryptedPartLen),
+      p11net::ConvertByteBufferToVector(pEncryptedPart, ulEncryptedPartLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -1374,7 +1374,7 @@ CK_RV C_SignEncryptUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->SignEncryptUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pPart, ulPartLen),
+      p11net::ConvertByteBufferToVector(pPart, ulPartLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -1402,7 +1402,7 @@ CK_RV C_DecryptVerifyUpdate(CK_SESSION_HANDLE hSession,
   CK_RV result = g_proxy->DecryptVerifyUpdate(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pEncryptedPart, ulEncryptedPartLen),
+      p11net::ConvertByteBufferToVector(pEncryptedPart, ulEncryptedPartLen),
       max_out_length,
       &data_out_length,
       &data_out);
@@ -1425,7 +1425,7 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   if (!pMechanism || (!pTemplate && ulCount > 0) || !phKey)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulCount);
+  p11net::Attributes attributes(pTemplate, ulCount);
   vector<uint8_t> serialized;
   if (!attributes.Serialize(&serialized))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -1433,11 +1433,11 @@ CK_RV C_GenerateKey(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       serialized,
-      chaps::PreservedCK_ULONG(phKey));
+      p11net::PreservedCK_ULONG(phKey));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1459,9 +1459,9 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession,
       !phPublicKey ||
       !phPrivateKey)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes public_attributes(pPublicKeyTemplate,
+  p11net::Attributes public_attributes(pPublicKeyTemplate,
                                       ulPublicKeyAttributeCount);
-  chaps::Attributes private_attributes(pPrivateKeyTemplate,
+  p11net::Attributes private_attributes(pPrivateKeyTemplate,
                                        ulPrivateKeyAttributeCount);
   vector<uint8_t> public_serialized, private_serialized;
   if (!public_attributes.Serialize(&public_serialized) ||
@@ -1471,13 +1471,13 @@ CK_RV C_GenerateKeyPair(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       public_serialized,
       private_serialized,
-      chaps::PreservedCK_ULONG(phPublicKey),
-      chaps::PreservedCK_ULONG(phPrivateKey));
+      p11net::PreservedCK_ULONG(phPublicKey),
+      p11net::PreservedCK_ULONG(phPrivateKey));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1501,7 +1501,7 @@ CK_RV C_WrapKey(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       hWrappingKey,
@@ -1531,7 +1531,7 @@ CK_RV C_UnwrapKey(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   if (!pMechanism || !pWrappedKey || !phKey)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulAttributeCount);
+  p11net::Attributes attributes(pTemplate, ulAttributeCount);
   vector<uint8_t> serialized;
   if (!attributes.Serialize(&serialized))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -1539,13 +1539,13 @@ CK_RV C_UnwrapKey(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       hUnwrappingKey,
-      chaps::ConvertByteBufferToVector(pWrappedKey, ulWrappedKeyLen),
+      p11net::ConvertByteBufferToVector(pWrappedKey, ulWrappedKeyLen),
       serialized,
-      chaps::PreservedCK_ULONG(phKey));
+      p11net::PreservedCK_ULONG(phKey));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1561,7 +1561,7 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession,
   LOG_CK_RV_AND_RETURN_IF(!g_is_initialized, CKR_CRYPTOKI_NOT_INITIALIZED);
   if (!pMechanism || !phKey)
     LOG_CK_RV_AND_RETURN(CKR_ARGUMENTS_BAD);
-  chaps::Attributes attributes(pTemplate, ulAttributeCount);
+  p11net::Attributes attributes(pTemplate, ulAttributeCount);
   vector<uint8_t> serialized;
   if (!attributes.Serialize(&serialized))
     LOG_CK_RV_AND_RETURN(CKR_TEMPLATE_INCONSISTENT);
@@ -1569,12 +1569,12 @@ CK_RV C_DeriveKey(CK_SESSION_HANDLE hSession,
       *g_user_isolate,
       hSession,
       pMechanism->mechanism,
-      chaps::ConvertByteBufferToVector(
+      p11net::ConvertByteBufferToVector(
           reinterpret_cast<CK_BYTE_PTR>(pMechanism->pParameter),
           pMechanism->ulParameterLen),
       hBaseKey,
       serialized,
-      chaps::PreservedCK_ULONG(phKey));
+      p11net::PreservedCK_ULONG(phKey));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;
@@ -1590,7 +1590,7 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession,
   uint32_t result = g_proxy->SeedRandom(
       *g_user_isolate,
       hSession,
-      chaps::ConvertByteBufferToVector(pSeed, ulSeedLen));
+      p11net::ConvertByteBufferToVector(pSeed, ulSeedLen));
   LOG_CK_RV_AND_RETURN_IF_ERR(result);
   VLOG(1) << __func__ << " - CKR_OK";
   return CKR_OK;

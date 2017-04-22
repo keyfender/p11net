@@ -6,12 +6,12 @@
 
 #include "cppcodec/base64_default_url.hpp"
 
-#include "chaps_factory.h"
+#include "p11net_factory.h"
 #include "object.h"
 #include "object_pool.h"
-#include "chaps.h"
+#include "p11net.h"
 
-namespace chaps {
+namespace p11net {
 
 namespace Purpose {
   const std::string kEncrypt = "encrypt";
@@ -19,7 +19,7 @@ namespace Purpose {
 }
 
 NetUtilityImpl::NetUtilityImpl(std::shared_ptr<ObjectPool> token_object_pool,
-                               std::shared_ptr<ChapsFactory> factory)
+                               std::shared_ptr<P11NetFactory> factory)
     : token_object_pool_(token_object_pool),
       factory_(factory)
   {}
@@ -157,4 +157,4 @@ boost::optional<std::string> NetUtilityImpl::Sign(
   return result;
 }
 
-}  // namespace chaps
+}  // namespace p11net

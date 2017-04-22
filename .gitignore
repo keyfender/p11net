@@ -1,3 +1,6 @@
+*~
+cmake/
+
 # Compiled Object files
 *.slo
 *.lo

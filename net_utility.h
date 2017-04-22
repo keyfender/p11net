@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_NET_UTILITY_H_
-#define CHAPS_NET_UTILITY_H_
+#ifndef P11NET_NET_UTILITY_H_
+#define P11NET_NET_UTILITY_H_
 
 #include <string>
 #include <boost/optional.hpp>
 
-namespace chaps {
+namespace p11net {
 
 // NetUtility is a high-level interface to NetHSM services. In practice, only a
 // single instance of this class is necessary to provide network services across
@@ -37,6 +37,6 @@ class NetUtility {
                                             const std::string& input) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_TPM_UTILITY_H_
+#endif  // P11NET_TPM_UTILITY_H_

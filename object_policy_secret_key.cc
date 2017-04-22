@@ -6,9 +6,9 @@
 
 #include <base/macros.h>
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 
-namespace chaps {
+namespace p11net {
 
 // Read policy list as follows:
 //   {attribute, sensitive, read-only {create, copy, modify}, required}
@@ -68,4 +68,4 @@ void ObjectPolicySecretKey::SetDefaultAttributes() {
   }
 }
 
-}  // namespace chaps
+}  // namespace p11net

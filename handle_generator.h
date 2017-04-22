@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_HANDLE_GENERATOR_H_
-#define CHAPS_HANDLE_GENERATOR_H_
+#ifndef P11NET_HANDLE_GENERATOR_H_
+#define P11NET_HANDLE_GENERATOR_H_
 
-namespace chaps {
+namespace p11net {
 
 // A HandleGenerator simply generates unique handles.
 class HandleGenerator {
@@ -14,6 +14,6 @@ class HandleGenerator {
   virtual int CreateHandle() = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_HANDLE_GENERATOR_H_
+#endif  // P11NET_HANDLE_GENERATOR_H_

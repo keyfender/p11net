@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_STORE_FAKE_H_
-#define CHAPS_OBJECT_STORE_FAKE_H_
+#ifndef P11NET_OBJECT_STORE_FAKE_H_
+#define P11NET_OBJECT_STORE_FAKE_H_
 
 #include "object_store.h"
 
 #include <map>
 #include <string>
 
-namespace chaps {
+namespace p11net {
 
 // A fake object store implementation which just stores blobs in memory.
 class ObjectStoreFake : public ObjectStore {
@@ -62,6 +62,6 @@ class ObjectStoreFake : public ObjectStore {
   std::map<int, ObjectBlob> object_blobs_;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_STORE_FAKE_H_
+#endif  // P11NET_OBJECT_STORE_FAKE_H_

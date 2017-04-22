@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_POLICY_KEY_H_
-#define CHAPS_OBJECT_POLICY_KEY_H_
+#ifndef P11NET_OBJECT_POLICY_KEY_H_
+#define P11NET_OBJECT_POLICY_KEY_H_
 
 #include "object_policy_common.h"
 
-namespace chaps {
+namespace p11net {
 
 // Enforces common policies for key objects.
 class ObjectPolicyKey : public ObjectPolicyCommon {
@@ -17,6 +17,6 @@ class ObjectPolicyKey : public ObjectPolicyCommon {
   virtual void SetDefaultAttributes();
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_POLICY_KEY_H_
+#endif  // P11NET_OBJECT_POLICY_KEY_H_

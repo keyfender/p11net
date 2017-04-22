@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_PKCS11_CRYPTOKI_H_
-#define CHAPS_PKCS11_CRYPTOKI_H_
+#ifndef P11NET_PKCS11_CRYPTOKI_H_
+#define P11NET_PKCS11_CRYPTOKI_H_
 
 #define EXPORT_SPEC __attribute__ ((visibility ("default")))
 
@@ -23,4 +23,4 @@
 
 #include "pkcs11/pkcs11.h"
 
-#endif  // CHAPS_PKCS11_CRYPTOKI_H_
+#endif  // P11NET_PKCS11_CRYPTOKI_H_

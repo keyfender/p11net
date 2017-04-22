@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_STORE_IMPL_H_
-#define CHAPS_OBJECT_STORE_IMPL_H_
+#ifndef P11NET_OBJECT_STORE_IMPL_H_
+#define P11NET_OBJECT_STORE_IMPL_H_
 
 #include "object_store.h"
 
@@ -18,7 +18,7 @@
 #include <leveldb/db.h>
 #include <leveldb/env.h>
 
-namespace chaps {
+namespace p11net {
 
 // An ObjectStore implementation based on SQLite.
 class ObjectStoreImpl : public ObjectStore {
@@ -132,6 +132,6 @@ class ObjectStoreImpl : public ObjectStore {
   DISALLOW_COPY_AND_ASSIGN(ObjectStoreImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_STORE_IMPL_H_
+#endif  // P11NET_OBJECT_STORE_IMPL_H_

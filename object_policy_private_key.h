@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_POLICY_PRIVATE_KEY_H_
-#define CHAPS_OBJECT_POLICY_PRIVATE_KEY_H_
+#ifndef P11NET_OBJECT_POLICY_PRIVATE_KEY_H_
+#define P11NET_OBJECT_POLICY_PRIVATE_KEY_H_
 
 #include "object_policy_key.h"
 
-namespace chaps {
+namespace p11net {
 
 // Enforces common policies for private key objects (CKO_PRIVATE_KEY).
 class ObjectPolicyPrivateKey : public ObjectPolicyKey {
@@ -18,6 +18,6 @@ class ObjectPolicyPrivateKey : public ObjectPolicyKey {
   virtual void SetDefaultAttributes();
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_POLICY_PRIVATE_KEY_H_
+#endif  // P11NET_OBJECT_POLICY_PRIVATE_KEY_H_

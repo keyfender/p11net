@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_SLOT_MANAGER_H_
-#define CHAPS_SLOT_MANAGER_H_
+#ifndef P11NET_SLOT_MANAGER_H_
+#define P11NET_SLOT_MANAGER_H_
 
 #include <map>
 #include <string>
@@ -12,7 +12,7 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 typedef std::map<CK_MECHANISM_TYPE, CK_MECHANISM_INFO> MechanismMap;
 typedef std::map<CK_MECHANISM_TYPE, CK_MECHANISM_INFO>::const_iterator
@@ -58,6 +58,6 @@ class SlotManager {
       int session_id, Session** session) const = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_SLOT_MANAGER_H_
+#endif  // P11NET_SLOT_MANAGER_H_

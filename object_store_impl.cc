@@ -25,7 +25,7 @@
 #include <metrics/metrics_library.h>
 #endif
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 #include "pkcs11/cryptoki.h"
 
 using base::FilePath;
@@ -61,7 +61,7 @@ class MetricsWrapper {
 
 }  // namespace
 
-namespace chaps {
+namespace p11net {
 
 const char ObjectStoreImpl::kInternalBlobKeyPrefix[] = "InternalBlob";
 const char ObjectStoreImpl::kPublicBlobKeyPrefix[] = "PublicBlob";
@@ -109,7 +109,7 @@ bool ObjectStoreImpl::Init(const FilePath& database_path) {
                                              &db);
   if (!status.ok()) {
     LOG(ERROR) << "Failed to open database: " << status.ToString();
-    metrics.SendUMAEvent("Chaps.DatabaseCorrupted");
+    metrics.SendUMAEvent("P11Net.DatabaseCorrupted");
     LOG(WARNING) << "Attempting to repair database.";
     status = leveldb::RepairDB(database_name.value(), leveldb::Options());
     if (status.ok())
@@ -118,7 +118,7 @@ bool ObjectStoreImpl::Init(const FilePath& database_path) {
 
   if (!status.ok()) {
     LOG(ERROR) << "Failed to repair database: " << status.ToString();
-    metrics.SendUMAEvent("Chaps.DatabaseRepairFailure");
+    metrics.SendUMAEvent("P11Net.DatabaseRepairFailure");
     // We don't want to risk using a database that has been corrupted. Recreate
     // the database from scratch but save the corrupted database for diagnostic
     // purposes.
@@ -135,7 +135,7 @@ bool ObjectStoreImpl::Init(const FilePath& database_path) {
 
   if (!status.ok()) {
     LOG(ERROR) << "Failed to create new database: " << status.ToString();
-    metrics.SendUMAEvent("Chaps.DatabaseCreateFailure");
+    metrics.SendUMAEvent("P11Net.DatabaseCreateFailure");
     return false;
   }
 
@@ -457,4 +457,4 @@ ObjectStoreImpl::BlobType ObjectStoreImpl::GetBlobType(int blob_id) {
   return it->second;
 }
 
-}  // namespace chaps
+}  // namespace p11net

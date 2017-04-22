@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_POOL_IMPL_H_
-#define CHAPS_OBJECT_POOL_IMPL_H_
+#ifndef P11NET_OBJECT_POOL_IMPL_H_
+#define P11NET_OBJECT_POOL_IMPL_H_
 
 #include "object_pool.h"
 
@@ -19,9 +19,9 @@
 
 #include "object_store.h"
 
-namespace chaps {
+namespace p11net {
 
-class ChapsFactory;
+class P11NetFactory;
 class HandleGenerator;
 
 // Key: Object handle.
@@ -35,7 +35,7 @@ class ObjectPoolImpl : public ObjectPool {
   // pool. They must remain valid for the entire life of the ObjectPoolImpl
   // instance. If the object pool is not persistent, 'store' should be NULL.
   // Otherwise, 'store' will be owned by (and later deleted by) the object pool.
-  ObjectPoolImpl(std::shared_ptr<ChapsFactory> factory,
+  ObjectPoolImpl(std::shared_ptr<P11NetFactory> factory,
                  std::shared_ptr<HandleGenerator> handle_generator,
                  std::unique_ptr<ObjectStore> store);
   virtual ~ObjectPoolImpl();
@@ -68,7 +68,7 @@ class ObjectPoolImpl : public ObjectPool {
   // Allows us to quickly check whether an object exists in the pool.
   ObjectSet objects_;
   HandleObjectMap handle_object_map_;
-  std::shared_ptr<ChapsFactory> factory_;
+  std::shared_ptr<P11NetFactory> factory_;
   std::shared_ptr<HandleGenerator> handle_generator_;
   std::unique_ptr<ObjectStore> store_;
   bool is_private_loaded_;
@@ -78,6 +78,6 @@ class ObjectPoolImpl : public ObjectPool {
   DISALLOW_COPY_AND_ASSIGN(ObjectPoolImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_POOL_IMPL_H_
+#endif  // P11NET_OBJECT_POOL_IMPL_H_

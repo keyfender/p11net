@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_STORE_H_
-#define CHAPS_OBJECT_STORE_H_
+#ifndef P11NET_OBJECT_STORE_H_
+#define P11NET_OBJECT_STORE_H_
 
 #include <map>
 #include <string>
@@ -12,7 +12,7 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 // Pairs serialized object data with the object's privacy requirement.
 struct ObjectBlob {
@@ -58,6 +58,6 @@ class ObjectStore {
   virtual bool LoadPrivateObjectBlobs(std::map<int, ObjectBlob>* blobs) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_STORE_H_
+#endif  // P11NET_OBJECT_STORE_H_

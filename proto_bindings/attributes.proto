@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package chaps;
+syntax = "proto2";
+package p11net;
 option optimize_for = LITE_RUNTIME;
 
 message Attribute {

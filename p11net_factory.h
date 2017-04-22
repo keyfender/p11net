@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_CHAPS_FACTORY_H_
-#define CHAPS_CHAPS_FACTORY_H_
+#ifndef P11NET_P11NET_FACTORY_H_
+#define P11NET_P11NET_FACTORY_H_
 
 #include <string>
 
@@ -11,7 +11,7 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 class HandleGenerator;
 class Object;
@@ -22,12 +22,12 @@ class ObjectStore;
 class Session;
 class NetUtility;
 
-// ChapsFactory is a factory for a number of interfaces in the Chaps
+// P11NetFactory is a factory for a number of interfaces in the P11Net
 // environment. Having this factory allows object implementations to be
 // decoupled and allows the creation of mock objects.
-class ChapsFactory {
+class P11NetFactory {
  public:
-  virtual ~ChapsFactory() {}
+  virtual ~P11NetFactory() {}
   virtual Session* CreateSession(int slot_id,
                                  std::shared_ptr<ObjectPool> token_object_pool,
                                  std::shared_ptr<NetUtility> net_utility,
@@ -41,6 +41,6 @@ class ChapsFactory {
   virtual NetUtility* CreateNetUtility(std::shared_ptr<ObjectPool> token_object_pool) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_CHAPS_FACTORY_H_
+#endif  // P11NET_P11NET_FACTORY_H_

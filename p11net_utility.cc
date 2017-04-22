@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 
 #include <grp.h>
 #include <pwd.h>
@@ -24,7 +24,7 @@
 #include <openssl/sha.h>
 
 #include "attributes.h"
-#include "chaps.h"
+#include "p11net.h"
 #include "pkcs11/cryptoki.h"
 
 using brillo::SecureBlob;
@@ -32,10 +32,10 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
-namespace chaps {
+namespace p11net {
 
-const char* kChapsServicePath = "/org/chromium/Chaps";
-const char* kChapsServiceName = "org.chromium.Chaps";
+const char* kP11NetServicePath = "/org/chromium/P11Net";
+const char* kP11NetServiceName = "org.chromium.P11Net";
 const size_t kTokenLabelSize = 32;
 const CK_ATTRIBUTE_TYPE kKeyBlobAttribute = CKA_VENDOR_DEFINED + 1;
 const CK_ATTRIBUTE_TYPE kAuthDataAttribute = CKA_VENDOR_DEFINED + 2;
@@ -773,4 +773,4 @@ bool IsIntegralAttribute(CK_ATTRIBUTE_TYPE type) {
   return false;
 }
 
-}  // namespace chaps
+}  // namespace p11net

@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_SESSION_IMPL_H_
-#define CHAPS_SESSION_IMPL_H_
+#ifndef P11NET_SESSION_IMPL_H_
+#define P11NET_SESSION_IMPL_H_
 
 #include "session.h"
 
@@ -15,15 +15,15 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
-#include "chaps_factory.h"
+#include "p11net_factory.h"
 #include "object.h"
 #include "object_pool.h"
 #include "net_utility.h"
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
-class ChapsFactory;
+class P11NetFactory;
 class ObjectPool;
 class NetUtility;
 
@@ -41,7 +41,7 @@ class SessionImpl : public Session {
   SessionImpl(int slot_id,
               std::shared_ptr<ObjectPool> token_object_pool,
               std::shared_ptr<NetUtility> net_utility,
-              std::shared_ptr<ChapsFactory> factory,
+              std::shared_ptr<P11NetFactory> factory,
               std::shared_ptr<HandleGenerator> handle_generator,
               bool is_read_only);
   virtual ~SessionImpl();
@@ -200,7 +200,7 @@ class SessionImpl : public Session {
                                      size_t key_size);
   const EVP_MD* GetOpenSSLDigest(CK_MECHANISM_TYPE mechanism);
 
-  std::shared_ptr<ChapsFactory> factory_;
+  std::shared_ptr<P11NetFactory> factory_;
   std::vector<int> find_results_;
   size_t find_results_offset_;
   bool find_results_valid_;
@@ -218,6 +218,6 @@ class SessionImpl : public Session {
   DISALLOW_COPY_AND_ASSIGN(SessionImpl);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_SESSION_IMPL_H_
+#endif  // P11NET_SESSION_IMPL_H_

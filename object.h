@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_H_
-#define CHAPS_OBJECT_H_
+#ifndef P11NET_OBJECT_H_
+#define P11NET_OBJECT_H_
 
 #include <map>
 #include <string>
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 typedef std::map<CK_ATTRIBUTE_TYPE, std::string> AttributeMap;
 
@@ -66,7 +66,7 @@ class Object {
 
   // Note:
   // Policy will not be enforced for the following methods. These methods are
-  // strictly for use within the PKCS #11 boundary. This allows Chaps code to
+  // strictly for use within the PKCS #11 boundary. This allows P11Net code to
   // view and modify attributes that cannot be viewed or modified from outside
   // the PKCS #11 boundary. For example, setting CKA_LOCAL to true when a key is
   // generated.
@@ -102,6 +102,6 @@ class Object {
   virtual void set_store_id(int store_id) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_H_
+#endif  // P11NET_OBJECT_H_

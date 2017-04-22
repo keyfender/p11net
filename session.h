@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_SESSION_H_
-#define CHAPS_SESSION_H_
+#ifndef P11NET_SESSION_H_
+#define P11NET_SESSION_H_
 
 #include <string>
 #include <vector>
@@ -12,7 +12,7 @@
 
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 class Object;
 
@@ -126,6 +126,6 @@ class Session {
   virtual void WaitForPrivateObjects() = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_SESSION_H_
+#endif  // P11NET_SESSION_H_

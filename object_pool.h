@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_OBJECT_POOL_H_
-#define CHAPS_OBJECT_POOL_H_
+#ifndef P11NET_OBJECT_POOL_H_
+#define P11NET_OBJECT_POOL_H_
 
 #include <string>
 #include <vector>
 
 #include <brillo/secure_blob.h>
 
-namespace chaps {
+namespace p11net {
 
 class Object;
 
@@ -40,7 +40,7 @@ class ObjectPool {
  public:
   virtual ~ObjectPool() {}
   // These methods get and set internal persistent blobs. These internal blobs
-  // are for use by Chaps. PKCS #11 applications will not see these when
+  // are for use by P11Net. PKCS #11 applications will not see these when
   // searching for objects. Only persistent implementations need to support
   // internal blobs. Internal blobs do not need to be encrypted.
   //   blob_id - The value of this identifier must be managed by the caller.
@@ -76,6 +76,6 @@ class ObjectPool {
   virtual bool Flush(const Object* object) = 0;
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_OBJECT_POOL_H_
+#endif  // P11NET_OBJECT_POOL_H_

@@ -13,9 +13,9 @@
 #include <base/synchronization/lock.h>
 #include <base/synchronization/waitable_event.h>
 
-#include "chaps.h"
-#include "chaps_factory.h"
-#include "chaps_utility.h"
+#include "p11net.h"
+#include "p11net_factory.h"
+#include "p11net_utility.h"
 #include "handle_generator.h"
 #include "object.h"
 #include "object_store.h"
@@ -29,9 +29,9 @@ using std::string;
 using std::shared_ptr;
 using std::vector;
 
-namespace chaps {
+namespace p11net {
 
-ObjectPoolImpl::ObjectPoolImpl(std::shared_ptr<ChapsFactory> factory,
+ObjectPoolImpl::ObjectPoolImpl(std::shared_ptr<P11NetFactory> factory,
                                std::shared_ptr<HandleGenerator> handle_generator,
                                std::unique_ptr<ObjectStore> store)
     : factory_(factory),
@@ -306,4 +306,4 @@ void ObjectPoolImpl::WaitForPrivateObjects() {
   LOG(INFO) << "Done waiting for private objects.";
 }
 
-}  // namespace chaps
+}  // namespace p11net

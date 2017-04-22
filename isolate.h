@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_ISOLATE_H_
-#define CHAPS_ISOLATE_H_
+#ifndef P11NET_ISOLATE_H_
+#define P11NET_ISOLATE_H_
 
 #include <string>
 
 #include <base/macros.h>
 #include <brillo/secure_blob.h>
 
-#include "chaps.h"
+#include "p11net.h"
 
-namespace chaps {
+namespace p11net {
 
 const size_t kIsolateCredentialBytes = 16;
 
@@ -55,7 +55,7 @@ class IsolateCredentialManager {
   DISALLOW_COPY_AND_ASSIGN(IsolateCredentialManager);
 };
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_ISOLATE_H_
+#endif  // P11NET_ISOLATE_H_
 

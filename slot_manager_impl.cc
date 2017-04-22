@@ -14,12 +14,13 @@
 
 #include <base/files/file_path.h>
 #include <base/files/file_util.h>
+#include <base/path_service.h>
 #include <base/logging.h>
 #include <brillo/secure_blob.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 
-#include "chaps_utility.h"
+#include "p11net_utility.h"
 #include "isolate.h"
 #include "object_store.h"
 #include "session.h"
@@ -34,7 +35,7 @@ using std::string;
 using std::shared_ptr;
 using std::vector;
 
-namespace chaps {
+namespace p11net {
 
 namespace {
 
@@ -45,8 +46,8 @@ const char kManufacturerID[] = "NitroKey";
 const CK_ULONG kMaxPinLen = 127;
 const CK_ULONG kMinPinLen = 6;
 const char kSlotDescription[] = "NetHSM Slot";
-const FilePath::CharType kSystemTokenPath[] =
-    FILE_PATH_LITERAL("/var/lib/chaps");
+// const FilePath::CharType kSystemTokenPath[] =
+//     FILE_PATH_LITERAL("/Users/sanders/.p11net");
 const char kSystemTokenAuthData[] = "000000";
 const char kSystemTokenLabel[] = "System NetHSM Token";
 const char kTokenLabel[] = "User-Specific NetHSM Token";
@@ -96,7 +97,7 @@ const struct MechanismInfo {
 
 }  // namespace
 
-SlotManagerImpl::SlotManagerImpl(std::shared_ptr<ChapsFactory> factory,
+SlotManagerImpl::SlotManagerImpl(std::shared_ptr<P11NetFactory> factory,
                                  bool auto_load_system_token)
     : factory_(factory),
       last_handle_(0),
@@ -120,7 +121,7 @@ bool SlotManagerImpl::Init() {
   // By default we'll start with two slots.  This allows for one 'system' slot
   // which always has a token available, and one 'user' slot which will have no
   // token until a login event is received.
-  AddSlots(2);
+  AddSlots(1);
 
   InitStage2();
   return true;
@@ -130,21 +131,23 @@ bool SlotManagerImpl::InitStage2() {
   if (is_initialized_)
     return true;
   if (auto_load_system_token_) {
-    if (base::DirectoryExists(FilePath(kSystemTokenPath))) {
-      // Setup the system token.
-      int system_slot_id = 0;
-      if (!LoadTokenInternal(
-               IsolateCredentialManager::GetDefaultIsolateCredential(),
-               FilePath(kSystemTokenPath),
-               SecureBlob(kSystemTokenAuthData),
-               kSystemTokenLabel,
-               &system_slot_id)) {
-        LOG(ERROR) << "Failed to load the system token.";
-        return false;
-      }
-    } else {
-      LOG(WARNING) << "System token not loaded because " << kSystemTokenPath
-                   << " does not exist.";
+    FilePath token_path;
+    base::PathService::Get(base::DIR_HOME, &token_path);
+    token_path = token_path.Append(".p11net");
+    if (!base::CreateDirectory(token_path)) {
+      LOG(WARNING) << "System token not loaded because " <<
+        token_path.AsUTF8Unsafe() << " does not exist.";
+    }
+    // Setup the system token.
+    int system_slot_id = 0;
+    if (!LoadTokenInternal(
+             IsolateCredentialManager::GetDefaultIsolateCredential(),
+             token_path,
+             SecureBlob(kSystemTokenAuthData),
+             kSystemTokenLabel,
+             &system_slot_id)) {
+      LOG(ERROR) << "Failed to load the system token.";
+      return false;
     }
   }
   is_initialized_ = true;
@@ -692,4 +695,4 @@ bool SlotManagerImpl::PathFromSlotId(int slot_id, FilePath* path) const {
   return false;
 }
 
-}  // namespace chaps
+}  // namespace p11net

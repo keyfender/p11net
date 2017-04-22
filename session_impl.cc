@@ -22,14 +22,12 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 
-#include "chaps.h"
-#include "chaps_factory.h"
-#include "chaps_utility.h"
+#include "p11net.h"
+#include "p11net_factory.h"
+#include "p11net_utility.h"
 #include "object.h"
 #include "object_pool.h"
 #include "object_store.h"
-//#include "object_importer.h"
-//#include "tpm_utility.h"
 #include "pkcs11/cryptoki.h"
 
 using brillo::SecureBlob;
@@ -39,7 +37,7 @@ using std::set;
 using std::string;
 using std::vector;
 
-namespace chaps {
+namespace p11net {
 
 //static const int kDefaultAuthDataBytes = 20;
 static const int kMaxCipherBlockBytes = 16;
@@ -52,7 +50,7 @@ static const int kMaxRSAKeyBitsSW = kMaxRSAOutputBytes * 8;
 SessionImpl::SessionImpl(int slot_id,
                          std::shared_ptr<ObjectPool> token_object_pool,
                          std::shared_ptr<NetUtility> net_utility,
-                         std::shared_ptr<ChapsFactory> factory,
+                         std::shared_ptr<P11NetFactory> factory,
                          std::shared_ptr<HandleGenerator> handle_generator,
                          bool is_read_only)
     : factory_(factory),
@@ -1252,7 +1250,6 @@ bool SessionImpl::RSAEncrypt(OperationContext* context) {
 }
 
 bool SessionImpl::RSASign(OperationContext* context) {
-  std::cout << "GetDERDigestInfo: >" << GetDERDigestInfo(context->mechanism_) << "<" << std::endl;
   string data_to_sign = GetDERDigestInfo(context->mechanism_) + context->data_;
   string signature;
   if (context->key_->IsTokenObject() &&
@@ -1391,4 +1388,4 @@ void SessionImpl::OperationContext::Clear() {
   parameter_.clear();
 }
 
-}  // namespace chaps
+}  // namespace p11net

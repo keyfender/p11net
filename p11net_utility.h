@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHAPS_CHAPS_UTILITY_H_
-#define CHAPS_CHAPS_UTILITY_H_
+#ifndef P11NET_P11NET_UTILITY_H_
+#define P11NET_P11NET_UTILITY_H_
 
 #include <sstream>
 #include <string>
@@ -13,10 +13,10 @@
 #include "base/stl_util.h"
 #include "brillo/secure_blob.h"
 
-#include "chaps.h"
+#include "p11net.h"
 #include "pkcs11/cryptoki.h"
 
-namespace chaps {
+namespace p11net {
 
 enum class DigestAlgorithm {
   MD5 = 0,
@@ -119,12 +119,12 @@ std::string PrintIntVector(const std::vector<T>& v) {
 
 // This macro logs the current function name and the CK_RV value provided.
 #define LOG_CK_RV(value) LOG(ERROR) << __func__ << " - " << \
-    chaps::CK_RVToString(value);
+    p11net::CK_RVToString(value);
 
 // This macro is a conditional version of LOG_CK_RV which will log only if the
 // value is not CKR_OK.
 #define LOG_CK_RV_ERR(value) LOG_IF(ERROR, ((value) != CKR_OK)) << __func__ << \
-    " - " << chaps::CK_RVToString(value);
+    " - " << p11net::CK_RVToString(value);
 
 // This macro logs and returns the given CK_RV value.
 #define LOG_CK_RV_AND_RETURN(value) {LOG_CK_RV(value); return (value);}
@@ -293,6 +293,6 @@ inline void ClearVector(std::vector<uint8_t>* vector) {
   brillo::SecureMemset(vector->data(), 0, vector->size());
 }
 
-}  // namespace chaps
+}  // namespace p11net
 
-#endif  // CHAPS_CHAPS_UTILITY_H_
+#endif  // P11NET_P11NET_UTILITY_H_

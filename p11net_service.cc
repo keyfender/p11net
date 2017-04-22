@@ -3,13 +3,13 @@
 // found in the LICENSE file.
 
 #include <iostream>
-#include "chaps_service.h"
+#include "p11net_service.h"
 
 #include <base/logging.h>
 
 #include "attributes.h"
-#include "chaps.h"
-#include "chaps_utility.h"
+#include "p11net.h"
+#include "p11net_utility.h"
 #include "object.h"
 #include "session.h"
 #include "slot_manager.h"
@@ -18,28 +18,28 @@ using std::string;
 using std::vector;
 using brillo::SecureBlob;
 
-namespace chaps {
+namespace p11net {
 
-ChapsServiceImpl::ChapsServiceImpl(std::shared_ptr<SlotManager> slot_manager)
+P11NetServiceImpl::P11NetServiceImpl(std::shared_ptr<SlotManager> slot_manager)
     : slot_manager_(slot_manager),
       init_(false) {
 }
 
-ChapsServiceImpl::~ChapsServiceImpl() {
+P11NetServiceImpl::~P11NetServiceImpl() {
   TearDown();
 }
 
-bool ChapsServiceImpl::Init() {
+bool P11NetServiceImpl::Init() {
   CHECK(slot_manager_);
   init_ = true;
   return true;
 }
 
-void ChapsServiceImpl::TearDown() {
+void P11NetServiceImpl::TearDown() {
   init_ = false;
 }
 
-uint32_t ChapsServiceImpl::GetSlotList(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GetSlotList(const SecureBlob& isolate_credential,
                                        bool token_present,
                                        vector<uint64_t>* slot_list) {
   CHECK(init_);
@@ -55,7 +55,7 @@ uint32_t ChapsServiceImpl::GetSlotList(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetSlotInfo(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GetSlotInfo(const SecureBlob& isolate_credential,
                                        uint64_t slot_id,
                                        vector<uint8_t>* slot_description,
                                        vector<uint8_t>* manufacturer_id,
@@ -88,7 +88,7 @@ uint32_t ChapsServiceImpl::GetSlotInfo(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetTokenInfo(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GetTokenInfo(const SecureBlob& isolate_credential,
                                         uint64_t slot_id,
                                         vector<uint8_t>* label,
                                         vector<uint8_t>* manufacturer_id,
@@ -154,7 +154,7 @@ uint32_t ChapsServiceImpl::GetTokenInfo(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetMechanismList(
+uint32_t P11NetServiceImpl::GetMechanismList(
     const SecureBlob& isolate_credential,
     uint64_t slot_id,
     vector<uint64_t>* mechanism_list) {
@@ -177,7 +177,7 @@ uint32_t ChapsServiceImpl::GetMechanismList(
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetMechanismInfo(
+uint32_t P11NetServiceImpl::GetMechanismInfo(
       const SecureBlob& isolate_credential,
       uint64_t slot_id,
       uint64_t mechanism_type,
@@ -203,11 +203,11 @@ uint32_t ChapsServiceImpl::GetMechanismInfo(
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::InitToken(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::InitToken(const SecureBlob& isolate_credential,
                                      uint64_t slot_id,
                                      const string* so_pin,
                                      const vector<uint8_t>& label) {
-  LOG_CK_RV_AND_RETURN_IF(label.size() != chaps::kTokenLabelSize,
+  LOG_CK_RV_AND_RETURN_IF(label.size() != p11net::kTokenLabelSize,
                           CKR_ARGUMENTS_BAD);
   if (static_cast<int>(slot_id) >= slot_manager_->GetSlotCount() ||
       !slot_manager_->IsTokenAccessible(isolate_credential, slot_id))
@@ -226,7 +226,7 @@ uint32_t ChapsServiceImpl::InitToken(const SecureBlob& isolate_credential,
   LOG_CK_RV_AND_RETURN(CKR_PIN_INCORRECT);
 }
 
-uint32_t ChapsServiceImpl::InitPIN(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::InitPIN(const SecureBlob& isolate_credential,
                                    uint64_t session_id, const string* pin) {
   Session* session = NULL;
   LOG_CK_RV_AND_RETURN_IF(!slot_manager_->GetSession(isolate_credential,
@@ -240,7 +240,7 @@ uint32_t ChapsServiceImpl::InitPIN(const SecureBlob& isolate_credential,
   LOG_CK_RV_AND_RETURN(CKR_USER_NOT_LOGGED_IN);
 }
 
-uint32_t ChapsServiceImpl::SetPIN(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::SetPIN(const SecureBlob& isolate_credential,
                                   uint64_t session_id,
                                   const string* old_pin,
                                   const string* new_pin) {
@@ -255,7 +255,7 @@ uint32_t ChapsServiceImpl::SetPIN(const SecureBlob& isolate_credential,
   LOG_CK_RV_AND_RETURN(CKR_PIN_INVALID);
 }
 
-uint32_t ChapsServiceImpl::OpenSession(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::OpenSession(const SecureBlob& isolate_credential,
                                        uint64_t slot_id,
                                        uint64_t flags,
                                        uint64_t* session_id) {
@@ -273,14 +273,14 @@ uint32_t ChapsServiceImpl::OpenSession(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::CloseSession(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::CloseSession(const SecureBlob& isolate_credential,
                                         uint64_t session_id) {
   if (!slot_manager_->CloseSession(isolate_credential, session_id))
     LOG_CK_RV_AND_RETURN(CKR_SESSION_HANDLE_INVALID);
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::CloseAllSessions(
+uint32_t P11NetServiceImpl::CloseAllSessions(
       const SecureBlob& isolate_credential,
       uint64_t slot_id) {
   if (static_cast<int>(slot_id) >= slot_manager_->GetSlotCount() ||
@@ -293,7 +293,7 @@ uint32_t ChapsServiceImpl::CloseAllSessions(
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetSessionInfo(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GetSessionInfo(const SecureBlob& isolate_credential,
                                           uint64_t session_id,
                                           uint64_t* slot_id,
                                           uint64_t* state,
@@ -316,7 +316,7 @@ uint32_t ChapsServiceImpl::GetSessionInfo(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetOperationState(
+uint32_t P11NetServiceImpl::GetOperationState(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     vector<uint8_t>* operation_state) {
@@ -337,7 +337,7 @@ uint32_t ChapsServiceImpl::GetOperationState(
   LOG_CK_RV_AND_RETURN(CKR_STATE_UNSAVEABLE);
 }
 
-uint32_t ChapsServiceImpl::SetOperationState(
+uint32_t P11NetServiceImpl::SetOperationState(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& operation_state,
@@ -353,7 +353,7 @@ uint32_t ChapsServiceImpl::SetOperationState(
   LOG_CK_RV_AND_RETURN(CKR_SAVED_STATE_INVALID);
 }
 
-uint32_t ChapsServiceImpl::Login(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Login(const SecureBlob& isolate_credential,
                                  uint64_t session_id,
                                  uint64_t user_type,
                                  const string* pin) {
@@ -382,7 +382,7 @@ uint32_t ChapsServiceImpl::Login(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::Logout(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Logout(const SecureBlob& isolate_credential,
                                   uint64_t session_id) {
   Session* session = NULL;
   LOG_CK_RV_AND_RETURN_IF(!slot_manager_->GetSession(isolate_credential,
@@ -393,7 +393,7 @@ uint32_t ChapsServiceImpl::Logout(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::CreateObject(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::CreateObject(const SecureBlob& isolate_credential,
                                         uint64_t session_id,
                                         const vector<uint8_t>& attributes,
                                         uint64_t* new_object_handle) {
@@ -413,7 +413,7 @@ uint32_t ChapsServiceImpl::CreateObject(const SecureBlob& isolate_credential,
       PreservedValue<uint64_t, int>(new_object_handle));
 }
 
-uint32_t ChapsServiceImpl::CopyObject(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::CopyObject(const SecureBlob& isolate_credential,
                                       uint64_t session_id,
                                       uint64_t object_handle,
                                       const vector<uint8_t>& attributes,
@@ -434,7 +434,7 @@ uint32_t ChapsServiceImpl::CopyObject(const SecureBlob& isolate_credential,
                              PreservedValue<uint64_t, int>(new_object_handle));
 }
 
-uint32_t ChapsServiceImpl::DestroyObject(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::DestroyObject(const SecureBlob& isolate_credential,
                                          uint64_t session_id,
                                          uint64_t object_handle) {
   Session* session = NULL;
@@ -446,7 +446,7 @@ uint32_t ChapsServiceImpl::DestroyObject(const SecureBlob& isolate_credential,
   return session->DestroyObject(object_handle);
 }
 
-uint32_t ChapsServiceImpl::GetObjectSize(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GetObjectSize(const SecureBlob& isolate_credential,
                                          uint64_t session_id,
                                          uint64_t object_handle,
                                          uint64_t* object_size) {
@@ -465,7 +465,7 @@ uint32_t ChapsServiceImpl::GetObjectSize(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GetAttributeValue(
+uint32_t P11NetServiceImpl::GetAttributeValue(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t object_handle,
@@ -495,7 +495,7 @@ uint32_t ChapsServiceImpl::GetAttributeValue(
   return result;
 }
 
-uint32_t ChapsServiceImpl::SetAttributeValue(
+uint32_t P11NetServiceImpl::SetAttributeValue(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t object_handle,
@@ -519,7 +519,7 @@ uint32_t ChapsServiceImpl::SetAttributeValue(
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::FindObjectsInit(
+uint32_t P11NetServiceImpl::FindObjectsInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& attributes) {
@@ -534,7 +534,7 @@ uint32_t ChapsServiceImpl::FindObjectsInit(
   return session->FindObjectsInit(tmp.attributes(), tmp.num_attributes());
 }
 
-uint32_t ChapsServiceImpl::FindObjects(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::FindObjects(const SecureBlob& isolate_credential,
                                        uint64_t session_id,
                                        uint64_t max_object_count,
                                        vector<uint64_t>* object_list) {
@@ -556,7 +556,7 @@ uint32_t ChapsServiceImpl::FindObjects(const SecureBlob& isolate_credential,
   return result;
 }
 
-uint32_t ChapsServiceImpl::FindObjectsFinal(
+uint32_t P11NetServiceImpl::FindObjectsFinal(
       const SecureBlob& isolate_credential,
       uint64_t session_id) {
   Session* session = NULL;
@@ -568,7 +568,7 @@ uint32_t ChapsServiceImpl::FindObjectsFinal(
   return session->FindObjectsFinal();
 }
 
-uint32_t ChapsServiceImpl::EncryptInit(
+uint32_t P11NetServiceImpl::EncryptInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -590,7 +590,7 @@ uint32_t ChapsServiceImpl::EncryptInit(
                                 key);
 }
 
-uint32_t ChapsServiceImpl::Encrypt(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Encrypt(const SecureBlob& isolate_credential,
                                    uint64_t session_id,
                                    const vector<uint8_t>& data_in,
                                    uint64_t max_out_length,
@@ -611,7 +611,7 @@ uint32_t ChapsServiceImpl::Encrypt(const SecureBlob& isolate_credential,
       PreservedByteVector(data_out));
 }
 
-uint32_t ChapsServiceImpl::EncryptUpdate(
+uint32_t P11NetServiceImpl::EncryptUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -633,7 +633,7 @@ uint32_t ChapsServiceImpl::EncryptUpdate(
       PreservedByteVector(data_out));
 }
 
-uint32_t ChapsServiceImpl::EncryptFinal(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::EncryptFinal(const SecureBlob& isolate_credential,
                                         uint64_t session_id,
                                         uint64_t max_out_length,
                                         uint64_t* actual_out_length,
@@ -652,7 +652,7 @@ uint32_t ChapsServiceImpl::EncryptFinal(const SecureBlob& isolate_credential,
       PreservedByteVector(data_out));
 }
 
-void ChapsServiceImpl::EncryptCancel(const SecureBlob& isolate_credential,
+void P11NetServiceImpl::EncryptCancel(const SecureBlob& isolate_credential,
                                      uint64_t session_id) {
   Session* session = NULL;
   if (!slot_manager_->GetSession(isolate_credential,
@@ -663,7 +663,7 @@ void ChapsServiceImpl::EncryptCancel(const SecureBlob& isolate_credential,
   session->OperationCancel(kEncrypt);
 }
 
-uint32_t ChapsServiceImpl::DecryptInit(
+uint32_t P11NetServiceImpl::DecryptInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -685,7 +685,7 @@ uint32_t ChapsServiceImpl::DecryptInit(
                                 key);
 }
 
-uint32_t ChapsServiceImpl::Decrypt(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Decrypt(const SecureBlob& isolate_credential,
                                    uint64_t session_id,
                                    const vector<uint8_t>& data_in,
                                    uint64_t max_out_length,
@@ -706,7 +706,7 @@ uint32_t ChapsServiceImpl::Decrypt(const SecureBlob& isolate_credential,
       PreservedByteVector(data_out));
 }
 
-uint32_t ChapsServiceImpl::DecryptUpdate(
+uint32_t P11NetServiceImpl::DecryptUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -728,7 +728,7 @@ uint32_t ChapsServiceImpl::DecryptUpdate(
       PreservedByteVector(data_out));
 }
 
-uint32_t ChapsServiceImpl::DecryptFinal(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::DecryptFinal(const SecureBlob& isolate_credential,
                                         uint64_t session_id,
                                         uint64_t max_out_length,
                                         uint64_t* actual_out_length,
@@ -747,7 +747,7 @@ uint32_t ChapsServiceImpl::DecryptFinal(const SecureBlob& isolate_credential,
       PreservedByteVector(data_out));
 }
 
-void ChapsServiceImpl::DecryptCancel(const SecureBlob& isolate_credential,
+void P11NetServiceImpl::DecryptCancel(const SecureBlob& isolate_credential,
                                      uint64_t session_id) {
   Session* session = NULL;
   if (!slot_manager_->GetSession(isolate_credential,
@@ -759,7 +759,7 @@ void ChapsServiceImpl::DecryptCancel(const SecureBlob& isolate_credential,
 }
 
 
-uint32_t ChapsServiceImpl::DigestInit(
+uint32_t P11NetServiceImpl::DigestInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -776,7 +776,7 @@ uint32_t ChapsServiceImpl::DigestInit(
                                 NULL);
 }
 
-uint32_t ChapsServiceImpl::Digest(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Digest(const SecureBlob& isolate_credential,
                                   uint64_t session_id,
                                   const vector<uint8_t>& data_in,
                                   uint64_t max_out_length,
@@ -797,7 +797,7 @@ uint32_t ChapsServiceImpl::Digest(const SecureBlob& isolate_credential,
       PreservedByteVector(digest));
 }
 
-uint32_t ChapsServiceImpl::DigestUpdate(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::DigestUpdate(const SecureBlob& isolate_credential,
                                         uint64_t session_id,
                                         const vector<uint8_t>& data_in) {
   Session* session = NULL;
@@ -812,14 +812,14 @@ uint32_t ChapsServiceImpl::DigestUpdate(const SecureBlob& isolate_credential,
                                   NULL);
 }
 
-uint32_t ChapsServiceImpl::DigestKey(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::DigestKey(const SecureBlob& isolate_credential,
                                      uint64_t session_id,
                                      uint64_t key_handle) {
   // We don't give out key digests.
   LOG_CK_RV_AND_RETURN(CKR_KEY_INDIGESTIBLE);
 }
 
-uint32_t ChapsServiceImpl::DigestFinal(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::DigestFinal(const SecureBlob& isolate_credential,
                                        uint64_t session_id,
                                        uint64_t max_out_length,
                                        uint64_t* actual_out_length,
@@ -838,7 +838,7 @@ uint32_t ChapsServiceImpl::DigestFinal(const SecureBlob& isolate_credential,
       PreservedByteVector(digest));
 }
 
-void ChapsServiceImpl::DigestCancel(const SecureBlob& isolate_credential,
+void P11NetServiceImpl::DigestCancel(const SecureBlob& isolate_credential,
                                     uint64_t session_id) {
   Session* session = NULL;
   if (!slot_manager_->GetSession(isolate_credential,
@@ -849,7 +849,7 @@ void ChapsServiceImpl::DigestCancel(const SecureBlob& isolate_credential,
   session->OperationCancel(kDigest);
 }
 
-uint32_t ChapsServiceImpl::SignInit(
+uint32_t P11NetServiceImpl::SignInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -871,7 +871,7 @@ uint32_t ChapsServiceImpl::SignInit(
                                 key);
 }
 
-uint32_t ChapsServiceImpl::Sign(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Sign(const SecureBlob& isolate_credential,
                                 uint64_t session_id,
                                 const vector<uint8_t>& data,
                                 uint64_t max_out_length,
@@ -892,7 +892,7 @@ uint32_t ChapsServiceImpl::Sign(const SecureBlob& isolate_credential,
       PreservedByteVector(signature));
 }
 
-uint32_t ChapsServiceImpl::SignUpdate(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::SignUpdate(const SecureBlob& isolate_credential,
                                       uint64_t session_id,
                                       const vector<uint8_t>& data_part) {
   Session* session = NULL;
@@ -907,7 +907,7 @@ uint32_t ChapsServiceImpl::SignUpdate(const SecureBlob& isolate_credential,
                                   NULL);
 }
 
-uint32_t ChapsServiceImpl::SignFinal(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::SignFinal(const SecureBlob& isolate_credential,
                                      uint64_t session_id,
                                      uint64_t max_out_length,
                                      uint64_t* actual_out_length,
@@ -926,7 +926,7 @@ uint32_t ChapsServiceImpl::SignFinal(const SecureBlob& isolate_credential,
       PreservedByteVector(signature));
 }
 
-void ChapsServiceImpl::SignCancel(const SecureBlob& isolate_credential,
+void P11NetServiceImpl::SignCancel(const SecureBlob& isolate_credential,
                                   uint64_t session_id) {
   Session* session = NULL;
   if (!slot_manager_->GetSession(isolate_credential,
@@ -937,7 +937,7 @@ void ChapsServiceImpl::SignCancel(const SecureBlob& isolate_credential,
   session->OperationCancel(kSign);
 }
 
-uint32_t ChapsServiceImpl::SignRecoverInit(
+uint32_t P11NetServiceImpl::SignRecoverInit(
       const SecureBlob& isolate_credential,
       uint64_t session_id,
       uint64_t mechanism_type,
@@ -946,7 +946,7 @@ uint32_t ChapsServiceImpl::SignRecoverInit(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::SignRecover(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::SignRecover(const SecureBlob& isolate_credential,
                                        uint64_t session_id,
                                        const vector<uint8_t>& data,
                                        uint64_t max_out_length,
@@ -955,7 +955,7 @@ uint32_t ChapsServiceImpl::SignRecover(const SecureBlob& isolate_credential,
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::VerifyInit(
+uint32_t P11NetServiceImpl::VerifyInit(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -977,7 +977,7 @@ uint32_t ChapsServiceImpl::VerifyInit(
                                 key);
 }
 
-uint32_t ChapsServiceImpl::Verify(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::Verify(const SecureBlob& isolate_credential,
                                   uint64_t session_id,
                                   const vector<uint8_t>& data,
                                   const vector<uint8_t>& signature) {
@@ -987,7 +987,7 @@ uint32_t ChapsServiceImpl::Verify(const SecureBlob& isolate_credential,
   return result;
 }
 
-uint32_t ChapsServiceImpl::VerifyUpdate(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::VerifyUpdate(const SecureBlob& isolate_credential,
                                         uint64_t session_id,
                                         const vector<uint8_t>& data_part) {
   Session* session = NULL;
@@ -1002,7 +1002,7 @@ uint32_t ChapsServiceImpl::VerifyUpdate(const SecureBlob& isolate_credential,
                                   NULL);
 }
 
-uint32_t ChapsServiceImpl::VerifyFinal(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::VerifyFinal(const SecureBlob& isolate_credential,
                                        uint64_t session_id,
                                        const vector<uint8_t>& signature) {
   Session* session = NULL;
@@ -1014,7 +1014,7 @@ uint32_t ChapsServiceImpl::VerifyFinal(const SecureBlob& isolate_credential,
   return session->VerifyFinal(ConvertByteVectorToString(signature));
 }
 
-void ChapsServiceImpl::VerifyCancel(const SecureBlob& isolate_credential,
+void P11NetServiceImpl::VerifyCancel(const SecureBlob& isolate_credential,
                                     uint64_t session_id) {
   Session* session = NULL;
   if (!slot_manager_->GetSession(isolate_credential,
@@ -1025,7 +1025,7 @@ void ChapsServiceImpl::VerifyCancel(const SecureBlob& isolate_credential,
   session->OperationCancel(kVerify);
 }
 
-uint32_t ChapsServiceImpl::VerifyRecoverInit(
+uint32_t P11NetServiceImpl::VerifyRecoverInit(
       const SecureBlob& isolate_credential,
       uint64_t session_id,
       uint64_t mechanism_type,
@@ -1034,7 +1034,7 @@ uint32_t ChapsServiceImpl::VerifyRecoverInit(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::VerifyRecover(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::VerifyRecover(const SecureBlob& isolate_credential,
                                          uint64_t session_id,
                                          const vector<uint8_t>& signature,
                                          uint64_t max_out_length,
@@ -1043,7 +1043,7 @@ uint32_t ChapsServiceImpl::VerifyRecover(const SecureBlob& isolate_credential,
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::DigestEncryptUpdate(
+uint32_t P11NetServiceImpl::DigestEncryptUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -1053,7 +1053,7 @@ uint32_t ChapsServiceImpl::DigestEncryptUpdate(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::DecryptDigestUpdate(
+uint32_t P11NetServiceImpl::DecryptDigestUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -1063,7 +1063,7 @@ uint32_t ChapsServiceImpl::DecryptDigestUpdate(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::SignEncryptUpdate(
+uint32_t P11NetServiceImpl::SignEncryptUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -1073,7 +1073,7 @@ uint32_t ChapsServiceImpl::SignEncryptUpdate(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::DecryptVerifyUpdate(
+uint32_t P11NetServiceImpl::DecryptVerifyUpdate(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     const vector<uint8_t>& data_in,
@@ -1083,7 +1083,7 @@ uint32_t ChapsServiceImpl::DecryptVerifyUpdate(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::GenerateKey(
+uint32_t P11NetServiceImpl::GenerateKey(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -1106,7 +1106,7 @@ uint32_t ChapsServiceImpl::GenerateKey(
                               PreservedValue<uint64_t, int>(key_handle));
 }
 
-uint32_t ChapsServiceImpl::GenerateKeyPair(
+uint32_t P11NetServiceImpl::GenerateKeyPair(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -1140,7 +1140,7 @@ uint32_t ChapsServiceImpl::GenerateKeyPair(
       PreservedValue<uint64_t, int>(private_key_handle));
 }
 
-uint32_t ChapsServiceImpl::WrapKey(
+uint32_t P11NetServiceImpl::WrapKey(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -1153,7 +1153,7 @@ uint32_t ChapsServiceImpl::WrapKey(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::UnwrapKey(
+uint32_t P11NetServiceImpl::UnwrapKey(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -1165,7 +1165,7 @@ uint32_t ChapsServiceImpl::UnwrapKey(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::DeriveKey(
+uint32_t P11NetServiceImpl::DeriveKey(
     const SecureBlob& isolate_credential,
     uint64_t session_id,
     uint64_t mechanism_type,
@@ -1176,7 +1176,7 @@ uint32_t ChapsServiceImpl::DeriveKey(
   LOG_CK_RV_AND_RETURN(CKR_FUNCTION_NOT_SUPPORTED);
 }
 
-uint32_t ChapsServiceImpl::SeedRandom(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::SeedRandom(const SecureBlob& isolate_credential,
                                       uint64_t session_id,
                                       const vector<uint8_t>& seed) {
   LOG_CK_RV_AND_RETURN_IF(seed.size() == 0, CKR_ARGUMENTS_BAD);
@@ -1190,7 +1190,7 @@ uint32_t ChapsServiceImpl::SeedRandom(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-uint32_t ChapsServiceImpl::GenerateRandom(const SecureBlob& isolate_credential,
+uint32_t P11NetServiceImpl::GenerateRandom(const SecureBlob& isolate_credential,
                                           uint64_t session_id,
                                           uint64_t num_bytes,
                                           vector<uint8_t>* random_data) {
@@ -1205,4 +1205,4 @@ uint32_t ChapsServiceImpl::GenerateRandom(const SecureBlob& isolate_credential,
   return CKR_OK;
 }
 
-}  // namespace chaps
+}  // namespace p11net
