@@ -23,7 +23,7 @@ class P11NetFactoryImpl : public P11NetFactory,
                                  bool is_read_only);
   virtual ObjectPool* CreateObjectPool(std::shared_ptr<HandleGenerator> handle_generator,
                                        std::unique_ptr<ObjectStore> store);
-  virtual ObjectStore* CreateObjectStore(const base::FilePath& file_name);
+  virtual ObjectStore* CreateObjectStore(const boost::filesystem::path& file_name);
   virtual Object* CreateObject();
   virtual ObjectPolicy* CreateObjectPolicy(CK_OBJECT_CLASS type);
   virtual NetUtility* CreateNetUtility(std::shared_ptr<ObjectPool> token_object_pool);

@@ -21,7 +21,7 @@
 #include "session_impl.h"
 #include "net_utility_impl.h"
 
-using base::FilePath;
+using boost::filesystem::path;
 using std::string;
 
 namespace p11net {
@@ -51,7 +51,7 @@ ObjectPool* P11NetFactoryImpl::CreateObjectPool(
   return pool.release();
 }
 
-ObjectStore* P11NetFactoryImpl::CreateObjectStore(const FilePath& file_name) {
+ObjectStore* P11NetFactoryImpl::CreateObjectStore(const boost::filesystem::path& file_name) {
   std::unique_ptr<ObjectStoreImpl> store(new ObjectStoreImpl());
   if (!store->Init(file_name)) {
     // The approach here is to limp along without a persistent object store so

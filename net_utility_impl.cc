@@ -4,6 +4,8 @@
 
 #include "net_utility_impl.h"
 
+#include <base/logging.h>
+
 #include "cppcodec/base64_default_url.hpp"
 
 #include "p11net_factory.h"

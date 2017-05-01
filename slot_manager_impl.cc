@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include <base/files/file_path.h>
-#include <base/files/file_util.h>
-#include <base/path_service.h>
+#include <boost/thread/lock_guard.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <base/logging.h>
 #include <brillo/secure_blob.h>
 #include <openssl/rand.h>
@@ -27,8 +27,6 @@
 #include "net_utility.h"
 #include "pkcs11/cryptoki.h"
 
-using base::AutoLock;
-using base::FilePath;
 using brillo::SecureBlob;
 using std::map;
 using std::string;
@@ -46,7 +44,7 @@ const char kManufacturerID[] = "NitroKey";
 const CK_ULONG kMaxPinLen = 127;
 const CK_ULONG kMinPinLen = 6;
 const char kSlotDescription[] = "NetHSM Slot";
-// const FilePath::CharType kSystemTokenPath[] =
+// const boost::filesystem::path::CharType kSystemTokenPath[] =
 //     FILE_PATH_LITERAL("/Users/sanders/.p11net");
 const char kSystemTokenAuthData[] = "000000";
 const char kSystemTokenLabel[] = "System NetHSM Token";
@@ -131,12 +129,11 @@ bool SlotManagerImpl::InitStage2() {
   if (is_initialized_)
     return true;
   if (auto_load_system_token_) {
-    FilePath token_path;
-    base::PathService::Get(base::DIR_HOME, &token_path);
-    token_path = token_path.Append(".p11net");
-    if (!base::CreateDirectory(token_path)) {
+    boost::filesystem::path token_path(std::getenv("HOME"));
+    token_path = token_path.append(".p11net");
+    if (!boost::filesystem::create_directory(token_path)) {
       LOG(WARNING) << "System token not loaded because " <<
-        token_path.AsUTF8Unsafe() << " does not exist.";
+        token_path << " does not exist.";
     }
     // Setup the system token.
     int system_slot_id = 0;
@@ -327,7 +324,7 @@ void SlotManagerImpl::CloseIsolate(const SecureBlob& isolate_credential) {
 }
 
 bool SlotManagerImpl::LoadToken(const SecureBlob& isolate_credential,
-                                const FilePath& path,
+                                const boost::filesystem::path& path,
                                 const SecureBlob& auth_data,
                                 const string& label,
                                 int* slot_id) {
@@ -337,7 +334,7 @@ bool SlotManagerImpl::LoadToken(const SecureBlob& isolate_credential,
 }
 
 bool SlotManagerImpl::LoadTokenInternal(const SecureBlob& isolate_credential,
-                                        const FilePath& path,
+                                        const boost::filesystem::path& path,
                                         const SecureBlob& auth_data,
                                         const string& label,
                                         int* slot_id) {
@@ -384,7 +381,7 @@ bool SlotManagerImpl::LoadTokenInternal(const SecureBlob& isolate_credential,
 
   // Insert slot into the isolate.
   isolate.slot_ids.insert(*slot_id);
-  LOG(INFO) << "Slot " << *slot_id << " ready for token at " << path.value();
+  LOG(INFO) << "Slot " << *slot_id << " ready for token at " << path;
   VLOG(1) << "SlotManagerImpl::LoadToken success";
   return true;
 }
@@ -466,7 +463,7 @@ bool SlotManagerImpl::InitializeSoftwareToken(const SecureBlob& auth_data,
 }
 
 void SlotManagerImpl::UnloadToken(const SecureBlob& isolate_credential,
-                                  const FilePath& path) {
+                                  const boost::filesystem::path& path) {
   VLOG(1) << "SlotManagerImpl::UnloadToken";
   if (isolate_map_.find(isolate_credential) == isolate_map_.end()) {
     LOG(WARNING) << "Invalid isolate credential for UnloadToken.";
@@ -477,7 +474,7 @@ void SlotManagerImpl::UnloadToken(const SecureBlob& isolate_credential,
   // If we're not managing this token, ignore the event.
   if (path_slot_map_.find(path) == path_slot_map_.end()) {
     LOG(WARNING) << "Unload Token event received for unknown path: "
-                 << path.value();
+                 << path;
     return;
   }
   int slot_id = path_slot_map_[path];
@@ -491,12 +488,12 @@ void SlotManagerImpl::UnloadToken(const SecureBlob& isolate_credential,
   path_slot_map_.erase(path);
   // Remove slot from the isolate.
   isolate.slot_ids.erase(slot_id);
-  LOG(INFO) << "Token at " << path.value() << " has been removed from slot "
+  LOG(INFO) << "Token at " << path << " has been removed from slot "
             << slot_id;
   VLOG(1) << "SlotManagerImpl::Unload token success";
 }
 
-void SlotManagerImpl::ChangeTokenAuthData(const FilePath& path,
+void SlotManagerImpl::ChangeTokenAuthData(const boost::filesystem::path& path,
                                           const SecureBlob& old_auth_data,
                                           const SecureBlob& new_auth_data) {
   if (!InitStage2()) {
@@ -575,7 +572,7 @@ void SlotManagerImpl::ChangeTokenAuthData(const FilePath& path,
 
 bool SlotManagerImpl::GetTokenPath(const SecureBlob& isolate_credential,
                                    int slot_id,
-                                   FilePath* path) {
+                                   boost::filesystem::path* path) {
   if (!IsTokenAccessible(isolate_credential, slot_id))
     return false;
   if (!IsTokenPresent(slot_id))
@@ -591,7 +588,7 @@ bool SlotManagerImpl::IsTokenPresent(int slot_id) const {
 }
 
 int SlotManagerImpl::CreateHandle() {
-  AutoLock lock(handle_generator_lock_);
+  boost::lock_guard<boost::mutex> lock(handle_generator_lock_);
   // If we use this many handles, we have a problem.
   CHECK(last_handle_ < std::numeric_limits<int>::max());
   return ++last_handle_;
@@ -674,7 +671,7 @@ void SlotManagerImpl::DestroyIsolate(const Isolate& isolate) {
   // Unload any existing tokens in this isolate.
   while (!isolate.slot_ids.empty()) {
     int slot_id = *isolate.slot_ids.begin();
-    FilePath path;
+    boost::filesystem::path path;
     CHECK(PathFromSlotId(slot_id, &path));
     UnloadToken(isolate.credential, path);
   }
@@ -682,9 +679,9 @@ void SlotManagerImpl::DestroyIsolate(const Isolate& isolate) {
   isolate_map_.erase(isolate.credential);
 }
 
-bool SlotManagerImpl::PathFromSlotId(int slot_id, FilePath* path) const {
+bool SlotManagerImpl::PathFromSlotId(int slot_id, boost::filesystem::path* path) const {
   CHECK(path);
-  map<FilePath, int>::const_iterator path_iter;
+  map<boost::filesystem::path, int>::const_iterator path_iter;
   for (path_iter = path_slot_map_.begin(); path_iter != path_slot_map_.end();
        ++path_iter) {
     if (path_iter->second == slot_id) {

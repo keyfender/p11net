@@ -7,12 +7,13 @@
 
 #include "p11net.h"
 
+#include <unistd.h>
+
 #include <string>
 #include <vector>
 
 #include "base/macros.h"
 #include "base/logging.h"
-//#include <base/synchronization/waitable_event.h>
 
 #include "attributes.h"
 #include "p11net_service.h"
@@ -22,7 +23,6 @@
 #include "p11net_factory_impl.h"
 #include "slot_manager_impl.h"
 
-//using base::WaitableEvent;
 using std::string;
 using std::vector;
 
@@ -115,7 +115,7 @@ EXPORT_SPEC void DisableMockProxy() {
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   if (g_is_initialized)
     return CKR_CRYPTOKI_ALREADY_INITIALIZED;
-//  logging::SetMinLogLevel(-10);
+  //logging::SetMinLogLevel(-10);
   // Validate args (if any).
   if (pInitArgs) {
     CK_C_INITIALIZE_ARGS_PTR args =

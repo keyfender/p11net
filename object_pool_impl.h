@@ -14,8 +14,7 @@
 #include <vector>
 
 #include <base/macros.h>
-#include <base/synchronization/lock.h>
-#include <base/synchronization/waitable_event.h>
+#include <boost/thread/mutex.hpp>
 
 #include "object_store.h"
 
@@ -63,7 +62,6 @@ class ObjectPoolImpl : public ObjectPool {
   bool LoadBlobs(const std::map<int, ObjectBlob>& object_blobs);
   bool LoadPublicObjects();
   bool LoadPrivateObjects();
-  void WaitForPrivateObjects();
 
   // Allows us to quickly check whether an object exists in the pool.
   ObjectSet objects_;
@@ -71,9 +69,7 @@ class ObjectPoolImpl : public ObjectPool {
   std::shared_ptr<P11NetFactory> factory_;
   std::shared_ptr<HandleGenerator> handle_generator_;
   std::unique_ptr<ObjectStore> store_;
-  bool is_private_loaded_;
-  base::Lock lock_;
-  base::WaitableEvent private_loaded_event_;
+  boost::mutex lock_;
 
   DISALLOW_COPY_AND_ASSIGN(ObjectPoolImpl);
 };

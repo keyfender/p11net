@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include <base/files/file_path.h>
+#include <boost/filesystem/path.hpp>
 
 #include "pkcs11/cryptoki.h"
 
@@ -35,7 +35,7 @@ class P11NetFactory {
                                  bool is_read_only) = 0;
   virtual ObjectPool* CreateObjectPool(std::shared_ptr<HandleGenerator> handle_generator,
                                        std::unique_ptr<ObjectStore> store) = 0;
-  virtual ObjectStore* CreateObjectStore(const base::FilePath& file_name) = 0;
+  virtual ObjectStore* CreateObjectStore(const boost::filesystem::path& file_name) = 0;
   virtual Object* CreateObject() = 0;
   virtual ObjectPolicy* CreateObjectPolicy(CK_OBJECT_CLASS type) = 0;
   virtual NetUtility* CreateNetUtility(std::shared_ptr<ObjectPool> token_object_pool) = 0;

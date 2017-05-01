@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
+#include <boost/thread/mutex.hpp>
+
 #include <base/macros.h>
-#include <base/synchronization/lock.h>
-//#include <base/threading/platform_thread.h>
 
 #include "handle_generator.h"
 #include "slot_manager.h"
@@ -76,18 +76,18 @@ class SlotManagerImpl : public SlotManager,
                            bool* new_isolate_created);
   virtual void CloseIsolate(const brillo::SecureBlob& isolate_credential);
   virtual bool LoadToken(const brillo::SecureBlob& isolate_credential,
-                         const base::FilePath& path,
+                         const boost::filesystem::path& path,
                          const brillo::SecureBlob& auth_data,
                          const std::string& label,
                          int* slot_id);
   virtual void UnloadToken(const brillo::SecureBlob& isolate_credential,
-                           const base::FilePath& path);
-  virtual void ChangeTokenAuthData(const base::FilePath& path,
+                           const boost::filesystem::path& path);
+  virtual void ChangeTokenAuthData(const boost::filesystem::path& path,
                                    const brillo::SecureBlob& old_auth_data,
                                    const brillo::SecureBlob& new_auth_data);
   virtual bool GetTokenPath(const brillo::SecureBlob& isolate_credential,
                             int slot_id,
-                            base::FilePath* path);
+                            boost::filesystem::path* path);
 
   // HandleGenerator methods.
   virtual int CreateHandle();
@@ -149,7 +149,7 @@ class SlotManagerImpl : public SlotManager,
   void DestroyIsolate(const Isolate& isolate);
 
   // Get the path of the token loaded in the given slot.
-  bool PathFromSlotId(int slot_id, base::FilePath* path) const;
+  bool PathFromSlotId(int slot_id, boost::filesystem::path* path) const;
 
   // Performs initialization tasks that depend on the TPM SRK.  If the TPM is
   // not owned this cannot succeed.  These tasks include seeding the software
@@ -158,7 +158,7 @@ class SlotManagerImpl : public SlotManager,
 
   // LoadToken for internal callers.
   bool LoadTokenInternal(const brillo::SecureBlob& isolate_credential,
-                         const base::FilePath& path,
+                         const boost::filesystem::path& path,
                          const brillo::SecureBlob& auth_data,
                          const std::string& label,
                          int* slot_id);
@@ -176,13 +176,13 @@ class SlotManagerImpl : public SlotManager,
   MechanismMap mechanism_info_;
   // Key: A path to a token's storage directory.
   // Value: The identifier of the associated slot.
-  std::map<base::FilePath, int> path_slot_map_;
+  std::map<boost::filesystem::path, int> path_slot_map_;
   std::vector<Slot> slot_list_;
   // Key: A session identifier.
   // Value: The identifier of the associated slot.
   std::map<int, int> session_slot_map_;
   std::map<brillo::SecureBlob, Isolate> isolate_map_;
-  base::Lock handle_generator_lock_;
+  boost::mutex handle_generator_lock_;
   bool auto_load_system_token_;
   bool is_initialized_;
 

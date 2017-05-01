@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include <base/files/file_path.h>
+#include <boost/filesystem/path.hpp>
 #include <brillo/secure_blob.h>
 
 namespace p11net {
@@ -52,7 +52,7 @@ class TokenManagerInterface {
   //  auth_data - Authorization data to unlock the token.
   //  slot_id - On success, will be set to the loaded token's slot ID.
   virtual bool LoadToken(const brillo::SecureBlob& isolate_credential,
-                         const base::FilePath& path,
+                         const boost::filesystem::path& path,
                          const brillo::SecureBlob& auth_data,
                          const std::string& label,
                          int* slot_id) = 0;
@@ -62,7 +62,7 @@ class TokenManagerInterface {
   //  isolate_credential - The isolate from which the token should be unloaded.
   //  path - The path to the token directory.
   virtual void UnloadToken(const brillo::SecureBlob& isolate_credential,
-                           const base::FilePath& path) = 0;
+                           const boost::filesystem::path& path) = 0;
 
   // Changes authorization data for a token.
   //
@@ -70,7 +70,7 @@ class TokenManagerInterface {
   //  old_auth_data - The current authorization data.
   //  new_auth_data - The new authorization data.
   virtual void ChangeTokenAuthData(
-      const base::FilePath& path,
+      const boost::filesystem::path& path,
       const brillo::SecureBlob& old_auth_data,
       const brillo::SecureBlob& new_auth_data) = 0;
 
@@ -83,7 +83,7 @@ class TokenManagerInterface {
   // path - On success, will be set to the token path for the slot.
   virtual bool GetTokenPath(const brillo::SecureBlob& isolate_credential,
                             int slot_id,
-                            base::FilePath* path) = 0;
+                            boost::filesystem::path* path) = 0;
 };
 
 }  // namespace p11net

@@ -11,10 +11,9 @@
 #include <memory>
 #include <string>
 
-#include <base/files/file_path.h>
+#include <boost/filesystem/path.hpp>
 #include <base/macros.h>
 #include <brillo/secure_blob.h>
-//#include <gtest/gtest_prod.h>
 #include <leveldb/db.h>
 #include <leveldb/env.h>
 
@@ -29,7 +28,7 @@ class ObjectStoreImpl : public ObjectStore {
   // Initializes the object store with the given database path. The magic file
   // name ":memory:" will cause the store to create a memory-only database which
   // is suitable for testing.
-  bool Init(const base::FilePath& database_path);
+  bool Init(const boost::filesystem::path& database_path);
 
   // ObjectStore methods.
   virtual bool GetInternalBlob(int blob_id, std::string* blob);

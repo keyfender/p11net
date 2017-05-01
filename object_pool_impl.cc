@@ -10,8 +10,7 @@
 #include <vector>
 
 #include <base/logging.h>
-#include <base/synchronization/lock.h>
-#include <base/synchronization/waitable_event.h>
+#include <boost/thread/lock_guard.hpp>
 
 #include "p11net.h"
 #include "p11net_factory.h"
@@ -21,8 +20,6 @@
 #include "object_store.h"
 #include "proto_bindings/attributes.pb.h"
 
-using base::AutoLock;
-using base::AutoUnlock;
 using brillo::SecureBlob;
 using std::map;
 using std::string;
@@ -36,10 +33,7 @@ ObjectPoolImpl::ObjectPoolImpl(std::shared_ptr<P11NetFactory> factory,
                                std::unique_ptr<ObjectStore> store)
     : factory_(factory),
       handle_generator_(handle_generator),
-      store_(std::move(store)),
-      is_private_loaded_(false),
-      private_loaded_event_(base::WaitableEvent::ResetPolicy::MANUAL,
-        base::WaitableEvent::InitialState::NOT_SIGNALED)  // Manual reset, not signaled.
+      store_(std::move(store))
   {
     store_.reset();
   }
@@ -47,39 +41,30 @@ ObjectPoolImpl::ObjectPoolImpl(std::shared_ptr<P11NetFactory> factory,
 ObjectPoolImpl::~ObjectPoolImpl() {}
 
 bool ObjectPoolImpl::Init() {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (store_.get()) {
     if (!LoadPublicObjects())
       return false;
-    // Import legacy objects. The existence of the 'imported' blob indicates
-    // that legacy objects have already been imported. The contents of this blob
-    // are ignored.
-    AutoUnlock unlock(lock_);
-    string imported_blob;
-  } else {
-    // There are no objects to load.
-    is_private_loaded_ = true;
-    private_loaded_event_.Signal();
   }
   return true;
 }
 
 bool ObjectPoolImpl::GetInternalBlob(int blob_id, string* blob) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (store_.get())
     return store_->GetInternalBlob(blob_id, blob);
   return false;
 }
 
 bool ObjectPoolImpl::SetInternalBlob(int blob_id, const string& blob) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (store_.get())
     return store_->SetInternalBlob(blob_id, blob);
   return false;
 }
 
 bool ObjectPoolImpl::SetEncryptionKey(const SecureBlob& key) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (key.empty())
     LOG(WARNING) << "WARNING: Private object services will not be available.";
   if (store_.get() && !key.empty()) {
@@ -89,24 +74,15 @@ bool ObjectPoolImpl::SetEncryptionKey(const SecureBlob& key) {
     if (!LoadPrivateObjects())
       LOG(WARNING) << "Failed to load private objects.";
   }
-  // Signal any callers waiting for private objects that they're ready.
-  is_private_loaded_ = true;
-  private_loaded_event_.Signal();
   return true;
 }
 
 bool ObjectPoolImpl::Insert(Object* object) {
-  // If it's a private object we need to wait until private objects have been
-  // loaded.
-  if (object->IsPrivate() && !is_private_loaded_) {
-    AutoLock lock(lock_);
-    WaitForPrivateObjects();
-  }
   return Import(object);
 }
 
 bool ObjectPoolImpl::Import(Object* object) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (objects_.find(object) != objects_.end())
     return false;
   if (store_.get()) {
@@ -130,14 +106,10 @@ bool ObjectPoolImpl::Import(Object* object) {
 }
 
 bool ObjectPoolImpl::Delete(const Object* object) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (objects_.find(object) == objects_.end())
     return false;
   if (store_.get()) {
-    // If it's a private object we need to wait until private objects have been
-    // loaded.
-    if (object->IsPrivate() && !is_private_loaded_)
-      WaitForPrivateObjects();
     if (!store_->DeleteObjectBlob(object->store_id()))
       return false;
   }
@@ -147,7 +119,7 @@ bool ObjectPoolImpl::Delete(const Object* object) {
 }
 
 bool ObjectPoolImpl::DeleteAll() {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   objects_.clear();
   handle_object_map_.clear();
   if (store_.get())
@@ -157,15 +129,7 @@ bool ObjectPoolImpl::DeleteAll() {
 
 bool ObjectPoolImpl::Find(const Object* search_template,
                           vector<const Object*>* matching_objects) {
-  AutoLock lock(lock_);
-  // If we're looking for private objects we need to wait until private objects
-  // have been loaded.
-  if (((search_template->IsAttributePresent(CKA_PRIVATE) &&
-      search_template->IsPrivate()) ||
-      (search_template->IsAttributePresent(CKA_CLASS) &&
-      search_template->GetObjectClass() == CKO_PRIVATE_KEY)) &&
-      !is_private_loaded_)
-    WaitForPrivateObjects();
+  boost::lock_guard<boost::mutex> lock(lock_);
   for (ObjectSet::iterator it = objects_.begin(); it != objects_.end(); ++it) {
     if (Matches(search_template, *it))
       matching_objects->push_back(*it);
@@ -174,7 +138,7 @@ bool ObjectPoolImpl::Find(const Object* search_template,
 }
 
 bool ObjectPoolImpl::FindByHandle(int handle, const Object** object) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   CHECK(object);
   HandleObjectMap::iterator it = handle_object_map_.find(handle);
   if (it == handle_object_map_.end())
@@ -188,17 +152,13 @@ Object* ObjectPoolImpl::GetModifiableObject(const Object* object) {
 }
 
 bool ObjectPoolImpl::Flush(const Object* object) {
-  AutoLock lock(lock_);
+  boost::lock_guard<boost::mutex> lock(lock_);
   if (objects_.find(object) == objects_.end())
     return false;
   if (store_.get()) {
     ObjectBlob serialized;
     if (!Serialize(object, &serialized))
       return false;
-    // If it's a private object we need to wait until private objects have been
-    // loaded.
-    if (object->IsPrivate() && !is_private_loaded_)
-      WaitForPrivateObjects();
     if (!store_->UpdateObjectBlob(object->store_id(), serialized))
       return false;
   }
@@ -297,13 +257,6 @@ bool ObjectPoolImpl::LoadPrivateObjects() {
   if (!store_->LoadPrivateObjectBlobs(&object_blobs))
     return false;
   return LoadBlobs(object_blobs);
-}
-
-void ObjectPoolImpl::WaitForPrivateObjects() {
-  AutoUnlock unlock(lock_);
-  LOG(INFO) << "Waiting for private objects to be loaded.";
-  private_loaded_event_.Wait();
-  LOG(INFO) << "Done waiting for private objects.";
 }
 
 }  // namespace p11net

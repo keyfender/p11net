@@ -9,12 +9,8 @@
 #include <string>
 #include <vector>
 
-#include <base/files/file_util.h>
 #include <base/logging.h>
-#include <base/strings/string_number_conversions.h>
-#include <base/strings/string_piece.h>
-#include <base/strings/string_util.h>
-#include <base/strings/stringprintf.h>
+#include <boost/filesystem/operations.hpp>
 #include <brillo/secure_blob.h>
 #include <leveldb/db.h>
 #include <leveldb/env.h>
@@ -28,7 +24,7 @@
 #include "p11net_utility.h"
 #include "pkcs11/cryptoki.h"
 
-using base::FilePath;
+using boost::filesystem::path;
 using brillo::SecureBlob;
 using std::map;
 using std::string;
@@ -84,14 +80,14 @@ ObjectStoreImpl::ObjectStoreImpl() {}
 
 ObjectStoreImpl::~ObjectStoreImpl() {}
 
-bool ObjectStoreImpl::Init(const FilePath& database_path) {
+bool ObjectStoreImpl::Init(const boost::filesystem::path& database_path) {
   MetricsWrapper metrics;
 
-  LOG(INFO) << "Opening database in: " << database_path.value();
+  LOG(INFO) << "Opening database in: " << database_path;
   leveldb::Options options;
   options.create_if_missing = true;
   options.paranoid_checks = true;
-  if (database_path.value() == ":memory:") {
+  if (database_path == ":memory:") {
 #ifndef NO_MEMENV
     // Memory only environment, useful for testing.
     LOG(INFO) << "Using memory-only environment.";
@@ -102,18 +98,19 @@ bool ObjectStoreImpl::Init(const FilePath& database_path) {
     return false;
 #endif
   }
-  FilePath database_name = database_path.Append(kDatabaseDirectory);
+  boost::filesystem::path database_name(database_path);
+  database_name.append(kDatabaseDirectory);
   leveldb::DB* db = NULL;
   leveldb::Status status = leveldb::DB::Open(options,
-                                             database_name.value(),
+                                             database_name.string(),
                                              &db);
   if (!status.ok()) {
     LOG(ERROR) << "Failed to open database: " << status.ToString();
     metrics.SendUMAEvent("P11Net.DatabaseCorrupted");
     LOG(WARNING) << "Attempting to repair database.";
-    status = leveldb::RepairDB(database_name.value(), leveldb::Options());
+    status = leveldb::RepairDB(database_name.string(), leveldb::Options());
     if (status.ok())
-      status = leveldb::DB::Open(options, database_name.value(), &db);
+      status = leveldb::DB::Open(options, database_name.string(), &db);
   }
 
   if (!status.ok()) {
@@ -124,13 +121,11 @@ bool ObjectStoreImpl::Init(const FilePath& database_path) {
     // purposes.
     LOG(WARNING) << "Recreating database from scratch. Moving current database "
                  << "to " << kCorruptDatabaseDirectory;
-    FilePath corrupt_db_path = database_path.Append(kCorruptDatabaseDirectory);
-    base::DeleteFile(corrupt_db_path, true);
-    if (!base::Move(database_name, corrupt_db_path)) {
-      LOG(ERROR) << "Failed to move database." << status.ToString();
-      return false;
-    }
-    status = leveldb::DB::Open(options, database_name.value(), &db);
+    boost::filesystem::path corrupt_db_path(database_path);
+    corrupt_db_path.append(kCorruptDatabaseDirectory);
+    boost::filesystem::remove(corrupt_db_path);
+    boost::filesystem::rename(database_name, corrupt_db_path);
+    status = leveldb::DB::Open(options, database_name.string(), &db);
   }
 
   if (!status.ok()) {
@@ -368,7 +363,9 @@ string ObjectStoreImpl::CreateBlobKey(BlobType type, int blob_id) {
     default:
       LOG(FATAL) << "Invalid enum value.";
   }
-  return base::StringPrintf("%s%s%d", prefix, kBlobKeySeparator, blob_id);
+  std::ostringstream result;
+  result << prefix << kBlobKeySeparator << blob_id;
+  return result.str();
 }
 
 bool ObjectStoreImpl::ParseBlobKey(const string& key,
@@ -379,11 +376,8 @@ bool ObjectStoreImpl::ParseBlobKey(const string& key,
     // This isn't a blob.
     return false;
   }
-  base::StringPiece key_piece(key.begin() + (index + 1), key.end());
-  if (!base::StringToInt(key_piece, blob_id)) {
-    LOG(ERROR) << "Invalid blob key id: " << key;
-    return false;
-  }
+  auto key_piece = key.substr(index + 1);
+  *blob_id = std::stoi(key_piece);
   string prefix = key.substr(0, index);
   if (prefix == kInternalBlobKeyPrefix) {
     *type = kInternal;
@@ -428,10 +422,7 @@ bool ObjectStoreImpl::ReadInt(const string& key, int* value) {
   string value_string;
   if (!ReadBlob(key, &value_string))
     return false;
-  if (!base::StringToInt(value_string, value)) {
-    LOG(ERROR) << "Invalid integer value.";
-    return false;
-  }
+  *value = std::stoi(value_string);
   return true;
 }
 
@@ -447,7 +438,7 @@ bool ObjectStoreImpl::WriteBlob(const string& key, const string& value) {
 }
 
 bool ObjectStoreImpl::WriteInt(const string& key, int value) {
-  return WriteBlob(key, base::IntToString(value));
+  return WriteBlob(key, std::to_string(value));
 }
 
 ObjectStoreImpl::BlobType ObjectStoreImpl::GetBlobType(int blob_id) {
