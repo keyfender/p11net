@@ -504,13 +504,11 @@ void SlotManagerImpl::ChangeTokenAuthData(const boost::filesystem::path& path,
   // but if we're not, we won't start until a Load Token event comes in.
   std::shared_ptr<ObjectPool> object_pool;
   int slot_id = 0;
-  bool unload = false;
   if (path_slot_map_.find(path) == path_slot_map_.end()) {
     auto object_store = std::unique_ptr<ObjectStore>(factory_->CreateObjectStore(path));
     object_pool.reset(factory_->CreateObjectPool(shared_from_this(),
                                                  std::move(object_store)));
     slot_id = FindEmptySlot();
-    unload = true;
   } else {
     slot_id = path_slot_map_[path];
     object_pool = slot_list_[slot_id].token_object_pool;

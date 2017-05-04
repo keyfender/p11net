@@ -8,8 +8,8 @@ link_directories(
     /usr/local/opt/openssl/lib
     /usr/local/lib
 )
-set(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS")
-#set(CMAKE_CXX_FLAGS "-O2 -Wall -Werror -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS")
+set(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS -fPIC")
+#set(CMAKE_CXX_FLAGS "-O2 -Wall -Werror -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS -fPIC")
 add_subdirectory(proto_bindings)
 #set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost COMPONENTS system chrono thread filesystem)
