@@ -115,7 +115,7 @@ EXPORT_SPEC void DisableMockProxy() {
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   if (g_is_initialized)
     return CKR_CRYPTOKI_ALREADY_INITIALIZED;
-  //logging::SetMinLogLevel(-10);
+  logging::SetMinLogLevel(-10);
   // Validate args (if any).
   if (pInitArgs) {
     CK_C_INITIALIZE_ARGS_PTR args =
