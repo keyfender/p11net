@@ -37,13 +37,12 @@ RUN set -ex ;\
     | tar zxpf - ;\
   cd libp11-0.4.7 ;\
   ./configure ;\
-  make ;\
+  make -j4 ;\
   make install ;\
   cd /src ;\
   git clone --depth=1 https://github.com/keyfender/p11net ;\
-  mkdir p11net/out ;\
-  cd p11net/out ;\
-  echo 'set(CMAKE_CXX_FLAGS "-O2 -Wall -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS -fPIC")' >> ../CMakeLists.txt ;\
+  mkdir p11net/build ;\
+  cd p11net/build ;\
   sed -i s/localhost:8080/keyfender:8080/ ../net_utility_impl.cc ;\
   cmake .. ;\
   make VERBOSE=1 -j4 ;\
