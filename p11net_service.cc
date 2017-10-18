@@ -212,8 +212,8 @@ uint32_t P11NetServiceImpl::InitToken(const SecureBlob& isolate_credential,
   if (static_cast<int>(slot_id) >= slot_manager_->GetSlotCount() ||
       !slot_manager_->IsTokenAccessible(isolate_credential, slot_id))
       {
-        std::cout << "slot_id: " << slot_id << std::endl;
-        std::cout << "GetSlotCount: " << slot_manager_->GetSlotCount() << std::endl;
+        VLOG(1) << "slot_id: " << slot_id;
+        VLOG(1) << "GetSlotCount: " << slot_manager_->GetSlotCount();
         LOG_CK_RV_AND_RETURN(CKR_SLOT_ID_INVALID);
       }
   LOG_CK_RV_AND_RETURN_IF(!slot_manager_->IsTokenPresent(isolate_credential,

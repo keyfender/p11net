@@ -161,7 +161,7 @@ CK_RV SessionImpl::FindObjectsInit(const CK_ATTRIBUTE_PTR attributes,
   std::string key_id;
   if (search_template->IsAttributePresent(CKA_ID)) {
     key_id = search_template->GetAttributeString(CKA_ID);
-    std::cout << "CKA_ID is set: " << key_id << std::endl;
+    VLOG(1) << "CKA_ID is set: " << key_id;
   }
 
   net_utility_->LoadKeys(key_id);

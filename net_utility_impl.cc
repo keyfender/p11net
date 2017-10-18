@@ -29,7 +29,7 @@ NetUtilityImpl::NetUtilityImpl(std::shared_ptr<ObjectPool> token_object_pool,
 NetUtilityImpl::~NetUtilityImpl() {}
 
 bool NetUtilityImpl::Init() {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  VLOG(1) << __PRETTY_FUNCTION__;
   web::http::client::http_client_config config;
   web::http::client::credentials creds("admin", "secret");
   config.set_credentials(creds);
@@ -39,11 +39,11 @@ bool NetUtilityImpl::Init() {
 }
 
 bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  VLOG(1) << __PRETTY_FUNCTION__;
   std::vector<std::string> locations;
   if (key_id.empty()) {
     auto response = client_->request(web::http::methods::GET, "/api/v0/keys").get();
-    printf("Received response status code:%u\n", response.status_code());
+    VLOG(1) << "Received response status code: " << response.status_code();
     auto json = response.extract_json().get();
     auto const arr = json["data"].as_array();
     for (auto i = arr.begin(); i != arr.end(); ++i) {
@@ -57,7 +57,7 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   for (auto i = locations.begin(); i != locations.end(); ++i) {
     auto const loc = *i;
     auto response = client_->request(web::http::methods::GET, loc).get();
-    printf("Received response status code:%u\n", response.status_code());
+    VLOG(1) << "Received response status code: " << response.status_code();
     auto json = response.extract_json().get();
     auto const id = json["data"]["id"].as_string();
     auto const modulus = base64::decode<std::string>(
@@ -67,7 +67,7 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
     auto const purpose = json["data"]["purpose"].as_string();
     const bool forEncrypting(boost::starts_with(purpose, Purpose::kEncrypt));
     const bool forSigning(boost::starts_with(purpose, Purpose::kSign));
-    std::cout << loc << " -> " << id << std::endl;
+    VLOG(1) << loc << " -> " << id;
 
     std::unique_ptr<Object> public_object(factory_->CreateObject());
     CHECK(public_object.get());
@@ -130,15 +130,15 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
 boost::optional<std::string> NetUtilityImpl::Decrypt(
     const std::string& key_loc,
     const std::string& encrypted_data) {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  VLOG(1) << __PRETTY_FUNCTION__;
   std::string encrypted_data_b64 = base64::encode(encrypted_data);
   auto body = web::json::value::parse("{\"encrypted\": \"" + encrypted_data_b64 + "\"}");
 
   auto response = client_->request(web::http::methods::POST,
                                  key_loc + "/actions/pkcs1/decrypt", body).get();
-  printf("Received response status code:%u\n", response.status_code());
+  VLOG(1) << "Received response status code: " << response.status_code();
   auto json = response.extract_json().get();
-  std::cout << json.serialize() << std::endl;
+  VLOG(1) << json.serialize();
   std::string result = base64::decode<std::string>(json["data"]["decrypted"].as_string());
   return result;
 }
@@ -146,15 +146,15 @@ boost::optional<std::string> NetUtilityImpl::Decrypt(
 boost::optional<std::string> NetUtilityImpl::Sign(
     const std::string& key_loc,
     const std::string& data) {
-  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  VLOG(1) << __PRETTY_FUNCTION__;
   std::string data_b64 = base64::encode(data);
   auto body = web::json::value::parse("{\"message\": \"" + data_b64 + "\"}");
 
   auto response = client_->request(web::http::methods::POST,
                                  key_loc + "/actions/pkcs1/sign", body).get();
-  printf("Received response status code:%u\n", response.status_code());
+  VLOG(1) << "Received response status code: " << response.status_code();
   auto json = response.extract_json().get();
-  std::cout << json.serialize() << std::endl;
+  VLOG(1) << json.serialize();
   std::string result = base64::decode<std::string>(json["data"]["signedMessage"].as_string());
   return result;
 }
