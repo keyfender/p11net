@@ -65,8 +65,8 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
     auto const public_exponent = base64::decode<std::string>(
       json["data"]["publicKey"]["publicExponent"].as_string());
     auto const purpose = json["data"]["purpose"].as_string();
-    const bool forEncrypting(boost::starts_with(purpose, Purpose::kEncrypt));
-    const bool forSigning(boost::starts_with(purpose, Purpose::kSign));
+    const bool forEncrypting(boost::contains(purpose, Purpose::kEncrypt));
+    const bool forSigning(boost::contains(purpose, Purpose::kSign));
     VLOG(1) << loc << " -> " << id;
 
     std::unique_ptr<Object> public_object(factory_->CreateObject());
