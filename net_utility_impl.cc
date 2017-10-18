@@ -91,7 +91,7 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
     std::unique_ptr<Object> private_object(factory_->CreateObject());
     CHECK(private_object.get());
     private_object->SetAttributeString(CKA_ID, id);
-    private_object->SetAttributeString(CKA_LABEL, loc);
+    private_object->SetAttributeString(CKA_LABEL, id);
     private_object->SetAttributeInt(CKA_CLASS, CKO_PRIVATE_KEY);
     private_object->SetAttributeInt(CKA_KEY_TYPE, CKK_RSA);
     private_object->SetAttributeBool(CKA_MODIFIABLE, false);
