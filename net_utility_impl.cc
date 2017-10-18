@@ -42,9 +42,11 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   VLOG(1) << __PRETTY_FUNCTION__;
   std::vector<std::string> locations;
   if (key_id.empty()) {
+    VLOG(1) << "Fetching key locations";
     auto response = client_->request(web::http::methods::GET, "/api/v0/keys").get();
     VLOG(1) << "Received response status code: " << response.status_code();
     auto json = response.extract_json().get();
+    VLOG(1) << "Response:\n" << json.serialize();
     auto const arr = json["data"].as_array();
     for (auto i = arr.begin(); i != arr.end(); ++i) {
       auto const loc = i->at("location").as_string();
@@ -56,9 +58,11 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   }
   for (auto i = locations.begin(); i != locations.end(); ++i) {
     auto const loc = *i;
+    VLOG(1) << "Fetching " << loc;
     auto response = client_->request(web::http::methods::GET, loc).get();
     VLOG(1) << "Received response status code: " << response.status_code();
     auto json = response.extract_json().get();
+    VLOG(1) << "Response:\n" << json.serialize();
     auto const id = json["data"]["id"].as_string();
     auto const modulus = base64::decode<std::string>(
       json["data"]["publicKey"]["modulus"].as_string());
@@ -133,12 +137,12 @@ boost::optional<std::string> NetUtilityImpl::Decrypt(
   VLOG(1) << __PRETTY_FUNCTION__;
   std::string encrypted_data_b64 = base64::encode(encrypted_data);
   auto body = web::json::value::parse("{\"encrypted\": \"" + encrypted_data_b64 + "\"}");
-
+  VLOG(1) << "Request:\n" << body.serialize();
   auto response = client_->request(web::http::methods::POST,
                                  key_loc + "/actions/pkcs1/decrypt", body).get();
   VLOG(1) << "Received response status code: " << response.status_code();
   auto json = response.extract_json().get();
-  VLOG(1) << json.serialize();
+  VLOG(1) << "Response:\n" << json.serialize();
   std::string result = base64::decode<std::string>(json["data"]["decrypted"].as_string());
   return result;
 }
@@ -149,12 +153,12 @@ boost::optional<std::string> NetUtilityImpl::Sign(
   VLOG(1) << __PRETTY_FUNCTION__;
   std::string data_b64 = base64::encode(data);
   auto body = web::json::value::parse("{\"message\": \"" + data_b64 + "\"}");
-
+  VLOG(1) << "Request:\n" << body.serialize();
   auto response = client_->request(web::http::methods::POST,
                                  key_loc + "/actions/pkcs1/sign", body).get();
   VLOG(1) << "Received response status code: " << response.status_code();
   auto json = response.extract_json().get();
-  VLOG(1) << json.serialize();
+  VLOG(1) << "Response:\n" << json.serialize();
   std::string result = base64::decode<std::string>(json["data"]["signedMessage"].as_string());
   return result;
 }
