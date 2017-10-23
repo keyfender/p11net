@@ -54,7 +54,6 @@ RUN set -ex ;\
     git \
     cmake \
     g++ \
-    curl \
     protobuf-dev \
     boost-dev \
     openssl-dev \
