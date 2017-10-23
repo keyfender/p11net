@@ -3,27 +3,30 @@
 // found in the LICENSE file.
 
 #include "base/logging.h"
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/utility/setup.hpp>
 
 namespace logging {
 
-namespace {
-
-// The minimum logging level. Anything higher than this will be logged. Set to
-// negative values to enable verbose logging.
-int g_min_log_level = INFO;
-
-}  // namespace
-
-void SetMinLogLevel(int level) {
-  g_min_log_level = level;
-}
-
-int GetMinLogLevel() {
-  return g_min_log_level;
-}
-
-int GetVlogVerbosity() {
-  return -g_min_log_level;
+void Init() {
+  static bool initialized = false;
+  if (initialized) return;
+  initialized = true;
+  boost::log::add_common_attributes();
+  boost::log::register_simple_formatter_factory<
+    boost::log::trivial::severity_level, char>("Severity");
+  boost::log::add_console_log(
+    std::clog,
+    boost::log::keywords::format =
+      "p11net|%TimeStamp%|%Severity%|%Message%"
+ );
+  // boost::log::core::get()->set_filter
+  // (
+  //     boost::log::trivial::severity >= boost::log::trivial::trace
+  // );
+  VLOG(1) << "Logging initialized.";
 }
 
 }  // namespace logging

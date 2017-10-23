@@ -247,7 +247,7 @@ bool Attributes::ParseAndFillInternal(const string& serialized,
 void Attributes::FreeAttributesInternal(CK_ATTRIBUTE_PTR attributes,
                                         CK_ULONG num_attributes,
                                         bool is_nesting_allowed) {
-  DCHECK(attributes != NULL);
+  CHECK(attributes != NULL);
   for (CK_ULONG i = 0; i < num_attributes; ++i) {
     if (!attributes[i].pValue)
       continue;
@@ -259,7 +259,7 @@ void Attributes::FreeAttributesInternal(CK_ATTRIBUTE_PTR attributes,
     }
     // If nesting is not allowed, then the array is malformed and we won't
     // process it recursively.
-    DCHECK(is_nesting_allowed);
+    CHECK(is_nesting_allowed);
     if (!is_nesting_allowed)
       continue;
     // This attribute is itself an attribute array; we need to recurse.

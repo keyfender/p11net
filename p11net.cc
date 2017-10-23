@@ -115,7 +115,7 @@ EXPORT_SPEC void DisableMockProxy() {
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs) {
   if (g_is_initialized)
     return CKR_CRYPTOKI_ALREADY_INITIALIZED;
-  logging::SetMinLogLevel(-10);
+  logging::Init();
   // Validate args (if any).
   if (pInitArgs) {
     CK_C_INITIALIZE_ARGS_PTR args =
@@ -195,6 +195,7 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo) {
 // PKCS #11 v2.20 section 11.4 page 106.
 CK_RV C_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList) {
   LOG_CK_RV_AND_RETURN_IF(!ppFunctionList, CKR_ARGUMENTS_BAD);
+  logging::Init();
   static CK_VERSION version = {2, 20};
   static CK_FUNCTION_LIST functionList = {
     version,

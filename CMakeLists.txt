@@ -3,16 +3,19 @@ project (libp11net CXX)
 include_directories(
     .
     ${PROJECT_BINARY_DIR}
+    ${Boost_INCLUDE_DIR}
 )
 link_directories(
     /usr/local/opt/openssl/lib
     /usr/local/lib
 )
-#set(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS -fPIC")
-set(CMAKE_CXX_FLAGS "-O2 -Wall -std=c++11 -DNDEBUG -DNO_MEMENV -DNO_METRICS -fPIC")
+add_definitions(-DBOOST_LOG_DYN_LINK -DNDEBUG -DNO_MEMENV -DNO_METRICS)
+#set(CMAKE_CXX_FLAGS "-g -Wall -Werror -std=c++11")
+add_compile_options(-O2 -Wall -std=c++11)
 add_subdirectory(proto_bindings)
 #set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS system chrono thread filesystem)
+#find_package(Boost COMPONENTS system chrono thread filesystem log REQUIRED)
+find_package(Boost COMPONENTS system chrono thread filesystem log log_setup REQUIRED)
 add_library(p11net MODULE
     p11net.cc
     p11net_service.cc

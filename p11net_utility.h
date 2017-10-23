@@ -16,6 +16,8 @@
 #include "p11net.h"
 #include "pkcs11/cryptoki.h"
 
+#include "base/macros.h"
+
 namespace p11net {
 
 enum class DigestAlgorithm {
