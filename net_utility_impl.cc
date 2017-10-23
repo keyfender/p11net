@@ -12,6 +12,9 @@
 #include "object.h"
 #include "object_pool.h"
 #include "p11net.h"
+#include "nlohmann/json.hpp"
+
+using JSON = nlohmann::json;
 
 namespace p11net {
 
@@ -43,14 +46,20 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   std::vector<std::string> locations;
   if (key_id.empty()) {
     VLOG(1) << "Fetching key locations";
-    auto response = client_->request(web::http::methods::GET, "/api/v0/keys").get();
+    auto response = client_->request(
+      web::http::methods::GET, "/api/v0/keys").get();
     VLOG(1) << "Received response status code: " << response.status_code();
-    auto json = response.extract_json().get();
-    VLOG(1) << "Response:\n" << json.serialize();
-    auto const arr = json["data"].as_array();
-    for (auto i = arr.begin(); i != arr.end(); ++i) {
-      auto const loc = i->at("location").as_string();
-      locations.push_back(loc);
+    auto const json = JSON::parse(response.extract_utf8string().get());
+    VLOG(1) << "Response:\n" << json.dump(2);
+    try {
+      auto const arr = json.at("data");
+      for (auto i = arr.begin(); i != arr.end(); ++i) {
+        locations.push_back(i->at("location"));
+      }
+    }
+    catch (JSON::exception& e) {
+      VLOG(1) << "Invalid JSON structure: " << e.what();
+      return false;
     }
     //nethsm_keys_loaded_ = true;
   } else {
@@ -58,20 +67,30 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   }
   for (auto i = locations.begin(); i != locations.end(); ++i) {
     auto const loc = *i;
-    VLOG(1) << "Fetching " << loc;
+    VLOG(1) << "Fetching key " << loc;
     auto response = client_->request(web::http::methods::GET, loc).get();
     VLOG(1) << "Received response status code: " << response.status_code();
-    auto json = response.extract_json().get();
-    VLOG(1) << "Response:\n" << json.serialize();
-    auto const id = json["data"]["id"].as_string();
-    auto const modulus = base64::decode<std::string>(
-      json["data"]["publicKey"]["modulus"].as_string());
-    auto const public_exponent = base64::decode<std::string>(
-      json["data"]["publicKey"]["publicExponent"].as_string());
-    auto const purpose = json["data"]["purpose"].as_string();
-    const bool forEncrypting(boost::contains(purpose, Purpose::kEncrypt));
-    const bool forSigning(boost::contains(purpose, Purpose::kSign));
-    VLOG(1) << loc << " -> " << id;
+    auto const json = JSON::parse(response.extract_utf8string().get());
+    VLOG(1) << "Response:\n" << json.dump(2);
+
+    std::string id, modulus, public_exponent, purpose;
+    bool forEncrypting, forSigning;
+    try {
+      id = json.at("data").at("id");
+      modulus = base64::decode<std::string>(
+        json.at("data").at("publicKey").at("modulus")
+        .get<std::string>());
+      public_exponent = base64::decode<std::string>(
+        json.at("data").at("publicKey").at("publicExponent")
+        .get<std::string>());
+      purpose = json.at("data").at("purpose");
+      forEncrypting = boost::contains(purpose, Purpose::kEncrypt);
+      forSigning = boost::contains(purpose, Purpose::kSign);
+    }
+    catch (JSON::exception& e) {
+      VLOG(1) << "Invalid JSON structure: " << e.what();
+      return false;
+    }
 
     std::unique_ptr<Object> public_object(factory_->CreateObject());
     CHECK(public_object.get());
@@ -136,14 +155,22 @@ boost::optional<std::string> NetUtilityImpl::Decrypt(
     const std::string& encrypted_data) {
   VLOG(1) << __PRETTY_FUNCTION__;
   std::string encrypted_data_b64 = base64::encode(encrypted_data);
-  auto body = web::json::value::parse("{\"encrypted\": \"" + encrypted_data_b64 + "\"}");
-  VLOG(1) << "Request:\n" << body.serialize();
+  JSON body;
+  body["encrypted"] = encrypted_data_b64;
+  VLOG(1) << "Request:\n" << body.dump(2);
   auto response = client_->request(web::http::methods::POST,
-                                 key_loc + "/actions/pkcs1/decrypt", body).get();
+    key_loc + "/actions/pkcs1/decrypt", body.dump(), "application/json").get();
   VLOG(1) << "Received response status code: " << response.status_code();
-  auto json = response.extract_json().get();
-  VLOG(1) << "Response:\n" << json.serialize();
-  std::string result = base64::decode<std::string>(json["data"]["decrypted"].as_string());
+  auto const json = JSON::parse(response.extract_utf8string().get());
+  VLOG(1) << "Response:\n" << json.dump(2);
+  std::string result;
+  try {
+    result = base64::decode<std::string>(
+      json.at("data").at("decrypted").get<std::string>());
+  }
+  catch (JSON::exception& e) {
+    VLOG(1) << "Invalid JSON structure: " << e.what();
+  }
   return result;
 }
 
@@ -152,14 +179,22 @@ boost::optional<std::string> NetUtilityImpl::Sign(
     const std::string& data) {
   VLOG(1) << __PRETTY_FUNCTION__;
   std::string data_b64 = base64::encode(data);
-  auto body = web::json::value::parse("{\"message\": \"" + data_b64 + "\"}");
-  VLOG(1) << "Request:\n" << body.serialize();
+  JSON body;
+  body["message"] = data_b64;
+  VLOG(1) << "Request:\n" << body.dump(2);
   auto response = client_->request(web::http::methods::POST,
-                                 key_loc + "/actions/pkcs1/sign", body).get();
+    key_loc + "/actions/pkcs1/sign", body.dump(), "application/json").get();
   VLOG(1) << "Received response status code: " << response.status_code();
-  auto json = response.extract_json().get();
-  VLOG(1) << "Response:\n" << json.serialize();
-  std::string result = base64::decode<std::string>(json["data"]["signedMessage"].as_string());
+  auto const json = JSON::parse(response.extract_utf8string().get());
+  VLOG(1) << "Response:\n" << json.dump(2);
+  std::string result;
+  try {
+    result = base64::decode<std::string>(
+      json.at("data").at("signedMessage").get<std::string>());
+  }
+  catch (JSON::exception& e) {
+    VLOG(1) << "Invalid JSON structure: " << e.what();
+  }
   return result;
 }
 
