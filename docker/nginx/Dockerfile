@@ -3,6 +3,7 @@ FROM nginx:alpine
 RUN set -ex ;\
   echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories ;\
   apk add --no-cache --purge -U \
+    boost \
     boost-filesystem \
     boost-thread \
     protobuf \
