@@ -16,7 +16,14 @@
 
 using JSON = nlohmann::json;
 
+const std::string kApiPath = "/api/v0/";
 namespace p11net {
+
+namespace Env {
+  const char* kUrl = "P11NET_URL";
+  const char* kUser = "P11NET_USER";
+  const char* kPassword = "P11NET_PASSWORD";
+}
 
 namespace Purpose {
   const std::string kEncrypt = "encrypt";
@@ -33,10 +40,13 @@ NetUtilityImpl::~NetUtilityImpl() {}
 
 bool NetUtilityImpl::Init() {
   VLOG(1) << __PRETTY_FUNCTION__;
+  const std::string url = std::getenv(Env::kUrl);
+  const std::string user = std::getenv(Env::kUser);
+  const std::string password = std::getenv(Env::kPassword);
   web::http::client::http_client_config config;
-  web::http::client::credentials creds("admin", "secret");
+  web::http::client::credentials creds(user, password);
   config.set_credentials(creds);
-  client_.emplace(U("http://localhost:8080"), config);
+  client_.emplace(url, config);
   is_initialized_ = true;
   return true;
 }
@@ -47,7 +57,7 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
   if (key_id.empty()) {
     VLOG(1) << "Fetching key locations";
     auto response = client_->request(
-      web::http::methods::GET, "/api/v0/keys").get();
+      web::http::methods::GET, kApiPath + "keys").get();
     VLOG(1) << "Received response status code: " << response.status_code();
     auto const json = JSON::parse(response.extract_utf8string().get());
     VLOG(1) << "Response:\n" << json.dump(2);
@@ -63,7 +73,7 @@ bool NetUtilityImpl::LoadKeys(const std::string& key_id) {
     }
     //nethsm_keys_loaded_ = true;
   } else {
-    locations.push_back("/api/v0/keys/" + key_id);
+    locations.push_back(kApiPath + "keys/" + key_id);
   }
   for (auto i = locations.begin(); i != locations.end(); ++i) {
     auto const loc = *i;
